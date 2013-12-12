@@ -2,3 +2,5 @@
 *.cfg
 
 *.log
+
+test.sh
