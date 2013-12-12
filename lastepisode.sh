@@ -1,12 +1,9 @@
 #!/bin/bash
 show="$1"
-# echo $show
 
 if [ -f "./ShowIndex/$show.cfg" ]; then
 
-# set -- $(<./ShowIndex/"$show".cfg)
   read -r showpath < ./ShowIndex/"$show".cfg
-# echo $showpath
 
 else
 
@@ -14,7 +11,6 @@ else
   exit 1
 
 fi
-
 
 if [ -d "$showpath" ]; then
 
@@ -30,13 +26,13 @@ else
 fi
 
 if [ -d "$showpath"/"$seasonpath" ]; then
-
-  # printf "Episode "
-  ls -1 "$showpath"/"$seasonpath" | sed -e 's/^.*S[0-9][0-9].*E\([0-9][0-9]\).*/\1/' -e 's/^.*s[0-9][0-9].*e\([0-9][0-9]\).*/\1/' | sort -r | sed -e 's/^0\([0-9]\)/\1/' | head -n 1
-
+  ls -1 "$showpath"/"$seasonpath" | \
+  sed -e 's/^.*S[0-9][0-9].*E\([0-9][0-9]\).*/\1/' \
+      -e 's/^.*s[0-9][0-9].*e\([0-9][0-9]\).*/\1/' | \
+  sort -r | \
+  sed -e 's/^0\([0-9]\)/\1/' | \
+  head -n 1
 else
-
   echo "Episode path not there?!"
   exit 3
-
 fi

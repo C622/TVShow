@@ -27,10 +27,13 @@ fi
 ./2up.sh 208 showlistHD.cfg >> $TVlog
 ./2up.sh 205 showlistSD.cfg >> $TVlog
 
+### Removing Torrent that are done downloading ###
 /usr/local/bin/btc list | /usr/local/bin/btc filter --key progress --numeric-equals 100.0 | /usr/local/bin/btc remove
 
+### Calling another bash script that will delete empty folders ###
 ~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload > ./log/TorrentDownload.log
 
+### Copy some key log-files to my Dropbox ###
 cp ~/Documents/Scripts/TVShow/log/TV.log ~/Dropbox/logs/TV.log
 cp ~/Documents/Scripts/TVShow/log/TVadded.log ~/Dropbox/logs/TVadded.log
 cp ~/Documents/Scripts/TVShow/log/TorrentDownload.log ~/Dropbox/logs/TorrentDownload.log
