@@ -1,9 +1,9 @@
 #!/bin/bash
 
+cd ~/Documents/Scripts/TVShow
+
 TVlog="./log/TV.log"
 div=$(cat ./devider.txt)
-
-cd ~/Documents/Scripts/TVShow
 
 ./rotatelog.sh > "./log/rotatelog.log"
 

@@ -7,9 +7,8 @@ echo $div
 echo "Shows .cfg files Updating..."
 echo $div
 
-while read line
+while read showname
 do
-	showname=$line
 	echo $showname
 	sh findshow.sh ShowPaths.cfg "$showname" > "./ShowIndex/$showname.cfg"
 	sh lastepisode.sh "$showname" >> "./ShowIndex/$showname.cfg"
