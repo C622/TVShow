@@ -13,7 +13,7 @@ fi
 
 line=$(echo $1 | sed -e 's/ /%20/g')
 
-curl -L -s http://thepiratebay.com/search/$line/0/7/$2 | \
+curl -L -s http://thepiratebay.org/search/$line/0/7/$2 | \
 grep -E '("detLink"|Magnet link|Uploaded |td align)' | \
 sed -e 's/&nbsp;/ /g' \
     -e 's/^.*Uploaded \(.*\), Size \(.*\), ULed.*/uploaded = "\1"#size = "\2"/' \
