@@ -2,7 +2,7 @@
 
 div=$(cat ./devider.txt)
 
-echo ""
+echo
 echo $div
 echo "Shows .cfg files Updating..."
 echo $div

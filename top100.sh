@@ -11,7 +11,7 @@ then
   hits=100
 fi
 
-curl -L -s http://thepiratebay.com/top/$1 | \
+curl -L -s http://thepiratebay.org/top/$1 | \
 grep -E '("detName|Magnet link|Uploaded|td align)' | \
 sed -e 's/&nbsp;/ /g' \
     -e 's/^.*Uploaded \(.*\), Size \(.*\), ULed.*/uploaded = "\1"#size = "\2"/' \

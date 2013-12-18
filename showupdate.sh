@@ -2,7 +2,7 @@
 
 div=$(cat ./devider.txt)
 
-echo ""
+echo
 echo $div
 echo "showlist.cfg Updating..."
 echo $div
