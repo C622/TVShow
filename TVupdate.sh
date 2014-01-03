@@ -1,18 +1,22 @@
 #!/bin/bash
 
-cd ~/Documents/Scripts/TVShow
+callpath=$(dirname $0)
+currentpath=$(pwd)
+cd $callpath
 
-TVlog="./log/TV.log"
+. ./TVshow.cfg
+
+TVlog="$logpath/$logfile"
 div=$(cat ./devider.txt)
 
-./rotatelog.sh > "./log/rotatelog.log"
+./rotatelog.sh > "$logpath/rotatelog.log"
 
 echo "" >> $TVlog
 echo $div >> $TVlog
 echo "$(date)" >> $TVlog
 echo $div >> $TVlog
 
-VarMod=$(stat -f "%Sm" TVShows.cfg)
+VarMod=$(stat -f "%Sm" $showlist)
 VarLast=$(cat TVshows_file.ini)
 
 if [[ $VarMod == $VarLast ]]
@@ -31,9 +35,11 @@ fi
 /usr/local/bin/btc list | /usr/local/bin/btc filter --key progress --numeric-equals 100.0 | /usr/local/bin/btc remove
 
 ### Calling another bash script that will delete empty folders ###
-~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload > ./log/TorrentDownload.log
+~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload > "$logpath/TorrentDownload.log"
 
 ### Copy some key log-files to my Dropbox ###
-cp ~/Documents/Scripts/TVShow/log/TV.log ~/Dropbox/logs/TV.log
-cp ~/Documents/Scripts/TVShow/log/TVadded.log ~/Dropbox/logs/TVadded.log
-cp ~/Documents/Scripts/TVShow/log/TorrentDownload.log ~/Dropbox/logs/TorrentDownload.log
+cp "$logpath/TV.log" ~/Dropbox/logs/TV.log
+cp "$logpath/TVadded.log" ~/Dropbox/logs/TVadded.log
+cp "$logpath/TorrentDownload.log" ~/Dropbox/logs/TorrentDownload.log
+
+cd $currentpath

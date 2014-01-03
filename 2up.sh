@@ -22,8 +22,12 @@ while read -r VarTitel; do
   VarEpisode=$(sed -E 's/^.*S[0-9]{2}E([0-9]{2}).*/\1/' <<< $VarTitel)
   VarShow=$(sed -E 's/^titel = "(.*).S[0-9]{2}E[0-9]{2}.*/\1/' <<< $VarTitel | tr '.' ' ')
 
+  ## Remove 0 if Season and/or Episode strats with 0
+
   VarSeason=$(sed -E 's/^0([0-9])/\1/' <<< $VarSeason)
   VarEpisode=$(sed -E 's/^0([0-9])/\1/' <<< $VarEpisode)
+
+  ## If VarTitel has the right format (*S##E##*), start comparing to list of shownames from file ($2) 
 
   if [[ $VarTitel =~ $re ]]
   then
