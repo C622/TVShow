@@ -18,7 +18,7 @@ while read -r VarTitel; do
   read -r VarLeechers
 
   VarTitelStr=$(sed -E 's/^titel = "(.*)"/\1/' <<< $VarTitel) 
-  printf "\n$VarTitelStr "
+  printf "** $VarTitelStr\n"
   
   ## If VarTitel has the right format (*S##E##*), start comparing to list of shownames from file ($2) 
   if [[ $VarTitel =~ $re1 ]]
@@ -27,12 +27,7 @@ while read -r VarTitel; do
 	VarEpisode=$(sed -E 's/^.*S[0-9]{2}E([0-9]{2}).*/\1/' <<< $VarTitel)
 	VarShow=$(sed -E 's/^titel = "(.*).S[0-9]{2}E[0-9]{2}.*/\1/' <<< $VarTitel | tr '.' ' ')
 
-	## Remove 0 if Season and/or Episode strats with 0
-
-	VarSeason=$(sed -E 's/^0([0-9])/\1/' <<< $VarSeason)
-	VarEpisode=$(sed -E 's/^0([0-9])/\1/' <<< $VarEpisode)
-
-	printf "... Valid : S##E##"
+	printf " - Format is valid : S##E##\n"
 	validstr=0
   else
 	if [[ $VarTitel =~ $re2 ]]
@@ -41,29 +36,31 @@ while read -r VarTitel; do
 		VarEpisode=$(sed -E 's/^.*[0-9]{1,2}x([0-9]{2}).*/\1/' <<< $VarTitel)
 		VarShow=$(sed -E 's/^titel = "(.*).[0-9]{1,2}x[0-9]{2}.*/\1/' <<< $VarTitel | tr '.' ' ')
 	
-		printf "... Valid : ##x##"
+		printf " - Format is valid : ##x##\n"
 		validstr=0
 	else
-	  	printf "... NOT valid!"
+	  	printf " - Format is NOT valid!\n"
 	  	validstr=1
 	fi
   fi
 
   if [ $validstr == 0 ]
   then
+    ## Remove 0 if Season and/or Episode strats with 0
+    VarSeason=$(bc <<< $VarSeason)
+    VarEpisode=$(bc <<< $VarEpisode)
+
     matchval=1
     while read line; do
       showname=$line
       if [[ $VarShow == $line ]]
       then
-	printf "\n"
         while read -r VarPath; do
             read -r VarShowSeason
             read -r VarShowEpisode
             if ([[ $VarSeason == $VarShowSeason ]] || [[ $VarSeason == $((VarShowSeason + 1)) ]])
             then
 		matchval=0
-		echo
 		echo "-----> Match!"
 		echo "Show            : $VarShow"
 		echo "Compare Season  : $VarShowSeason to $VarSeason"
@@ -87,15 +84,15 @@ while read -r VarTitel; do
               else
                 echo "Episode is NOT next episode! <-----"
               fi
+	      echo
       fi
     done < ./ShowIndex/$showname.cfg
   fi
   done < ./ShowIndex/$2
   if ! [ $matchval == 0 ]
   then
-	printf " ... Skip!"
+	printf " - NOT wanted show in this quality\n"
   fi
  fi
 done < 2up.tmp
-printf "\n"
 rm 2up.tmp
