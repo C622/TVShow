@@ -9,16 +9,20 @@ cd $callpath
 TVlog="$logpath/$logfile"
 div=$(cat ./devider.txt)
 
+## Use rotatelog script to make default log spot avalibel
 ./rotatelog.sh > "$logpath/rotatelog.log"
 
+## Send Date and Time to log file - With headers
 echo "" >> $TVlog
 echo $div >> $TVlog
 echo "$(date)" >> $TVlog
 echo $div >> $TVlog
 
+## Get Modyfid date and time stamp for $showlist, and value stored in TVshows_file.ini
 VarMod=$(stat -f "%Sm" $showlist)
 VarLast=$(cat TVshows_file.ini)
 
+## If $showlist has changed run showupdate and showindex scripts
 if [[ $VarMod == $VarLast ]]
 then
   echo "TVShows.cfg has not changed... No updating." >> $TVlog
@@ -28,6 +32,7 @@ else
   ./showindex.sh >> $TVlog
 fi
 
+## Run 2up script with paremeters for HD (208 on TPB) and SD (205 on TPB)
 ./2up.sh 208 showlistHD.cfg >> $TVlog
 ./2up.sh 205 showlistSD.cfg >> $TVlog
 
