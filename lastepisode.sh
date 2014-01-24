@@ -1,9 +1,9 @@
 #!/bin/bash
 show="$1"
 
-if [ -f "./ShowIndex/$show.cfg" ]; then
+if [ -f "/Users/chris/Documents/Scripts/TVShow/ShowIndex/$show.cfg" ]; then
 
-  read -r showpath < ./ShowIndex/"$show".cfg
+	read -r showpath < ~/Documents/Scripts/TVShow/ShowIndex/"$show".cfg
 
 else
 

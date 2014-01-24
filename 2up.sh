@@ -4,6 +4,7 @@
 div=$(cat ./devider.txt)
 
 echo $div
+date
 echo "2up.sh $1 $2 output..."
 echo $div
 

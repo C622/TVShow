@@ -4,7 +4,7 @@ callpath=$(dirname $0)
 currentpath=$(pwd)
 cd $callpath
 
-. ./TVshow.cfg
+. ./TVShow.cfg
 
 TVlog="$logpath/$logfile"
 div=$(cat ./devider.txt)
