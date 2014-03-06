@@ -33,9 +33,9 @@ while read -r VarTitel; do
   else
 	if [[ $VarTitel =~ $re2 ]]
 	then
-		VarSeason=$(sed -E 's/^.*([0-9]{1,2})x[0-9]{2}.*/\1/' <<< $VarTitel)
-		VarEpisode=$(sed -E 's/^.*[0-9]{1,2}x([0-9]{2}).*/\1/' <<< $VarTitel)
-		VarShow=$(sed -E 's/^titel = "(.*).[0-9]{1,2}x[0-9]{2}.*/\1/' <<< $VarTitel | tr '.' ' ')
+		VarSeason=$(echo $VarTitel | egrep -oh '[0-9]{1,2}x[0-9]{2}' | sed 's/\(.*\)x.*/\1/')
+		VarEpisode=$(echo $VarTitel | egrep -oh '[0-9]{1,2}x[0-9]{2}' | sed 's/.*x\(.*\)/\1/')
+		VarShow=$(sed -e 's/.[0-9]\{1,2\}x[0-9]\{2\}.*//' -e 's/titel = "//' -e 's/[\._]/ /' <<< $VarTitel)
 	
 		printf " - Format is valid : ##x##\n"
 		validstr=0
@@ -44,6 +44,8 @@ while read -r VarTitel; do
 	  	validstr=1
 	fi
   fi
+  ## Remove end of line space ... if any?!
+  VarShow=$(echo $VarShow | sed 's/ *$//')
 
   if [ $validstr == 0 ]
   then

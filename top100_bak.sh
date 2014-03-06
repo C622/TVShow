@@ -1,17 +1,24 @@
 #!/bin/sh
 re='^[0-9]{3}$'
 hits=$2
-type=$3
+short=$3
 
 if ! [[ $1 =~ $re ]]
 then 
-	echo "First Argument needs to be a 3 digit number!"
+	echo "Argument needs to be a 3 digit number!"
 	exit 1
 fi
 
 if [ -z $hits ]
 then
 	hits=100
+fi
+
+if [[ $short == 's' ]]
+then
+	short=0
+else
+	short=1
 fi
 
 curl -L -s http://thepiratebay.org/top/$1 | \
@@ -24,19 +31,11 @@ sed -e 's/&nbsp;/ /g' \
 tr '#' '\n' | \
 head -n $(expr 6 \* $hits) > /tmp/tmp_top.txt
 
-
-case "$type" in
-	-s)
-		## Short list view
-		cat /tmp/tmp_top.txt | grep "^titel" | sed -e 's/titel = "//' -e 's/"//' | nl
-		;;
-	-d)
-		## Download the given number
-		btc add -u "$(cat /tmp/tmp_top.txt | grep "^magnet" | tail -n 1)"
-		;;
-	*)
-		cat /tmp/tmp_top.txt
-		;;
-esac
+if [[ $short == 0 ]]
+then
+	cat /tmp/tmp_top.txt | grep "^titel" | sed -e 's/titel = "//' -e 's/"//' | nl
+else
+	cat /tmp/tmp_top.txt
+fi
 
 rm /tmp/tmp_top.txt
