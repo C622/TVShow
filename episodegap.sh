@@ -8,7 +8,13 @@ then
 	#echo "No path given -----> Current path will be used"
 fi
 
-IFS=$'\r\n' list=($(ls "$dirpath" | grep -E '([sS][0-9][0-9][eE][0-9][0-9]|[0-9][0-9]x[0-9][0-9])' | grep -E '(.mkv$|.avi$|.mpg$|.mpeg$|.wmv$|.mov$|.m4v$|.mp4$|.3gp$)' | sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*/\1/' | sed 's/^.*[0-9][0-9]x\([0-9][0-9]\).*$/\1/' | sort | bc))
+IFS=$'\r\n' list=($(ls "$dirpath" | \
+	grep -E '([sS][0-9][0-9][eE][0-9][0-9]|[0-9][0-9]x[0-9][0-9])' | \
+	grep -E '(.mkv$|.avi$|.mpg$|.mpeg$|.wmv$|.mov$|.m4v$|.mp4$|.3gp$)' | \
+	sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*/\1/' | \
+	sed 's/^.*[0-9][0-9]x\([0-9][0-9]\).*$/\1/' | \
+	sort | \
+	bc))
 
 size=${#list[@]}
 
@@ -67,9 +73,3 @@ do
 		echo "$i"
 	fi
 done
-
-#while read line
-#do
-#    	pathname=$line
-#	find $pathname -name "$2" -print -quit
-#done < $1

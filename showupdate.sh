@@ -18,16 +18,17 @@ do
   read -r VarDrop
  
   VarPrint=$(echo "$VarShow" | sed -E 's/^name.*"(.*)"/\1/')
-  echo "$VarPrint" >> ./ShowIndex/showlist.cfg
  
   if [[ $VarQuality == 'quality = "SD"' ]]
   then
+	echo "$VarPrint" >> ./ShowIndex/showlist.cfg
     echo "$VarPrint" >> ./ShowIndex/showlistSD.cfg
     echo "$VarPrint >>> SD!"
   fi
 
   if [[ $VarQuality == 'quality = "HD"' ]]
   then
+	echo "$VarPrint" >> ./ShowIndex/showlist.cfg
     echo "$VarPrint" >> ./ShowIndex/showlistHD.cfg
     echo "$VarPrint >>> HD!"
   fi
