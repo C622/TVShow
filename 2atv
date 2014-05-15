@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#ffmpeg -i Top.Gear.The.Perfect.Road.Trip.2013.720p.WEB-DL.DD5.1.H.264.mkv -vcodec copy -acodec aac -ac 2 -strict experimental -ab 160k -async 1 -f mp4 Top.Gear_The.Perfect.Road.Trip.213.720p.mp4
+
+
+## Fuction 'usage', displays usage information
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script converts a given movie file, using ffmpeg to a mp4 file that is compatibel with Apple TV.
+
+Output file is stored in the current users Movie folder.
+
+OPTIONS:
+   -h      Show this message
+   -i      Input file name
+   -s      Only show information about streams in the Input file
+
+EOF
+}
+
+information()
+{
+echo "Info about Video and Audio Streams:"
+echo "==================================="
+
+ffmpeg -i "$oldfilename" 2>&1 | egrep 'Video:|Audio:' | sed 's/  //g'
+}
+
+oldfilename=
+MYtype=
+
+while getopts “hsi:” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 0
+             ;;
+         i)
+	     oldfilename=$OPTARG
+             ;;
+         s)
+             MYtype=s
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+newfilename=${oldfilename##*/}
+newfilename=${newfilename%.*}.mp4
+
+if [[ -z $oldfilename ]]
+	then 
+	usage
+	exit 1
+fi
+
+if [[ $MYtype == s ]]
+	then
+	information
+	exit 0
+fi
+
+ffmpeg -y -i "$oldfilename" -vcodec copy -acodec aac -ac 2 -strict experimental -ab 160k -async 1 -f mp4 ~/Movies/"$newfilename"
