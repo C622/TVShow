@@ -1,6 +1,8 @@
 #!/bin/sh
 
-./top100.sh $1 > 2up.tmp
+TEMPFILE=$(mktemp -t 2up)
+
+./top100.sh $1 > $TEMPFILE
 div=$(cat ./devider.txt)
 
 echo $div
@@ -97,5 +99,5 @@ while read -r VarTitel; do
 	printf " - NOT wanted show in this quality\n"
   fi
  fi
-done < 2up.tmp
-rm 2up.tmp
+done < $TEMPFILE
+rm $TEMPFILE

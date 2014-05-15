@@ -10,6 +10,7 @@ echo $div
 rm ./ShowIndex/showlist.cfg
 rm ./ShowIndex/showlistSD.cfg
 rm ./ShowIndex/showlistHD.cfg
+rm ./ShowIndex/showlistNO.cfg
 
 while read -r VarShow
 do
@@ -31,6 +32,13 @@ do
 	echo "$VarPrint" >> ./ShowIndex/showlist.cfg
     echo "$VarPrint" >> ./ShowIndex/showlistHD.cfg
     echo "$VarPrint >>> HD!"
+  fi
+
+  if [[ $VarQuality == 'quality = "NO"' ]]
+  then
+	# echo "$VarPrint" >> ./ShowIndex/showlist.cfg
+    echo "$VarPrint" >> ./ShowIndex/showlistNO.cfg
+    echo "$VarPrint >>> NO!"
   fi
  
 done < ./TVshows.cfg

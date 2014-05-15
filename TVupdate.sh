@@ -7,7 +7,7 @@ cd $callpath
 . ./TVShow.cfg
 
 TVlog="$logpath/$logfile"
-div=$(cat ./devider.txt)
+div=$(cat ./$devider)
 
 ## Use rotatelog script to make default log spot avalibel
 ./rotatelog.sh > "$logpath/rotatelog.log"
@@ -29,7 +29,7 @@ then
 else
   echo "TVShows.cfg has been changed... Running update:" >> $TVlog
   ./showupdate.sh >> $TVlog
-  ./showindex.sh >> $TVlog
+  ./showindex.sh $indexfiles/showlist.cfg >> $TVlog
 fi
 
 ## Run 2up script with paremeters for HD (208 on TPB) and SD (205 on TPB)
@@ -37,7 +37,7 @@ fi
 ./2up.sh 205 showlistSD.cfg >> $TVlog
 
 ### Removing Torrent that are done downloading ###
-/usr/local/bin/btc list | /usr/local/bin/btc filter --key progress --numeric-equals 100.0 | /usr/local/bin/btc remove
+./uclear.sh
 
 ### Calling another bash script that will delete empty folders ###
 ~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload > "$logpath/TorrentDownload.log"
