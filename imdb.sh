@@ -19,8 +19,10 @@ OPTIONS:
    -s      Serach string
    -t      Type                (Syntax: movie, episode, series, game or any - default is movie)
    -y      Year                (Syntax: Four digit number - 0000 to 9999)
+   -f      Use first hit IMDB id
 
    Option -i or -s has to be set, if both are set, the -i option is used and other options are ignored.
+   Option -f can NOT be used together with option -i.
 
 EOF
 }
@@ -30,9 +32,10 @@ imdbID=
 SERACH=
 TYPE=
 YEAR=
+FIRST=
 
 ## Get options set - If a non valied options is set, fuction 'usage' is called
-while getopts “hi:s:t:y:” OPTION
+while getopts “hfi:s:t:y:” OPTION
 do
      case $OPTION in
          h)
@@ -50,6 +53,9 @@ do
              ;;
          y)
              YEAR=$OPTARG
+             ;;
+         f)
+             FIRST=1
              ;;
          ?)
              usage
@@ -84,6 +90,23 @@ then
 	exit 1
 fi
 
+## If -f is set, query www.omdbapi.com to get first IMDB ID hit
+if [[ ! -z $FIRST ]]
+then
+	if [[ ! -z $imdbID ]]
+	then
+		usage
+		exit 2
+	else
+		if [[ ! -z $YEAR ]]
+		then
+			imdbID=$(imdb -s $SERACH -y $YEAR | grep -m 1 'imdbID' | sed -E 's/^.*\"(tt.*)\".*$/\1/')
+		else
+			imdbID=$(imdb -s $SERACH | grep -m 1 'imdbID' | sed -E 's/^.*\"(tt.*)\".*$/\1/')
+		fi
+	fi
+fi
+
 ## If $imdbID is set, query www.omdbapi.com with given IMDB ID
 if [[ ! -z $imdbID ]]
 then
@@ -91,6 +114,7 @@ then
 	curl -s $urlstring | jq -M '.' | sed 's/\\\"/\"/g'
 	exit
 fi
+
 
 ## If $YEAR is set, add '&y=' to the front of the variable - Used for the final url
 if [[ ! -z $YEAR ]]

@@ -46,12 +46,11 @@ while read -r Line1; do
 	
 	. $TEMPFILE2
 	
-	echo "Order ..... : $order          " >> $TEMPFILE3
-	echo "Name ...... : $name                              " >> $TEMPFILE3
-	echo "Progress .. : $progress %          " >> $TEMPFILE3
-	echo "Size ...... : $(($size >> 20)) MB          " >> $TEMPFILE3
-	echo "State ..... : $state          " >> $TEMPFILE3
-	echo >> $TEMPFILE3
+	printf "Order ..... : $order \033[K \n" >> $TEMPFILE3
+	printf "Name ...... : $name \033[K \n" >> $TEMPFILE3
+	printf "Progress .. : $progress %% \033[K \n" >> $TEMPFILE3
+	printf "Size ...... : $(($size >> 20)) MB \033[K \n" >> $TEMPFILE3
+	printf "State ..... : $state \033[K \n \033[K \n" >> $TEMPFILE3
 done < $TEMPFILE1
 
 

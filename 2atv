@@ -15,7 +15,9 @@ Output file is stored in the current users Movie folder.
 OPTIONS:
    -h      Show this message
    -i      Input file name
-   -s      Only show information about streams in the Input file
+   -l      Only show information about streams in the Input file
+   -s      Select Audio stream number (Remember that it is one down comparied to the stream list)
+   -g      Gen PTS (When converting from .avi)
 
 EOF
 }
@@ -29,9 +31,11 @@ ffmpeg -i "$oldfilename" 2>&1 | egrep 'Video:|Audio:' | sed 's/  //g'
 }
 
 oldfilename=
+streamnumber=0
 MYtype=
+genpts=n
 
-while getopts “hsi:” OPTION
+while getopts “hlgi:s:” OPTION
 do
      case $OPTION in
          h)
@@ -39,10 +43,16 @@ do
              exit 0
              ;;
          i)
-	     oldfilename=$OPTARG
+	     	oldfilename=$OPTARG
              ;;
-         s)
-             MYtype=s
+         l)
+             MYtype=l
+             ;;
+	     s)
+	     	streamnumber=$OPTARG
+             ;;
+         g)
+             genpts=y
              ;;
          ?)
              usage
@@ -60,10 +70,16 @@ if [[ -z $oldfilename ]]
 	exit 1
 fi
 
-if [[ $MYtype == s ]]
+if [[ $MYtype == l ]]
 	then
 	information
 	exit 0
 fi
 
-ffmpeg -y -i "$oldfilename" -vcodec copy -acodec aac -ac 2 -strict experimental -ab 160k -async 1 -f mp4 ~/Movies/"$newfilename"
+if [[ $genpts == y ]]
+	then
+	ffmpeg -y -fflags +genpts -i "$oldfilename" -vcodec copy -acodec aac -ac 2 -map 0:v:0 -map 0:a:"$streamnumber" -strict experimental -ab 160k -async 1 -f mp4 ~/Movies/"$newfilename"
+	exit 0
+fi
+
+ffmpeg -y -i "$oldfilename" -vcodec copy -acodec aac -ac 2 -map 0:v:0 -map 0:a:"$streamnumber" -strict experimental -ab 160k -async 1 -f mp4 ~/Movies/"$newfilename"

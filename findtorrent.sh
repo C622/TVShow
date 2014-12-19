@@ -27,7 +27,7 @@ head -n $(expr 6 \* $hits) > /tmp/tmp_find.txt
 case "$type" in
 	        -s)
 			## Short list view
-			cat /tmp/tmp_find.txt | grep "^titel" | sed -e 's/titel = "//' -e 's/"//' | nl
+			cat /tmp/tmp_find.txt | grep "^titel" | sed -e 's/titel = "//' -e 's/"//' | cat -b
 			;;
 		-d)
 			## Download the given number

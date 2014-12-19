@@ -1,0 +1,7 @@
+BTC download:
+=============
+https://github.com/kissiel/btc/tree/master
+
+sudo pip install -U https://github.com/kissiel/btc/tarball/magnet-urls
+
+(Orginal https://github.com/bittorrent/btc)

@@ -17,9 +17,9 @@ fi
 ## Check if -2 prameter is set for "added in the last 48h view"
 if [[ $4 == "-2" ]]
 	then
-	curlString="http://thepiratebay.org/top/48h$1"
+	curlString="http://thepiratebay.cr/top/48h$1"
 else
-	curlString="http://thepiratebay.org/top/$1"
+	curlString="http://thepiratebay.cr/top/$1"
 fi
 
 ## If no amount of hits are requisted, set it to 100	
