@@ -1,8 +1,12 @@
 #!/bin/bash
 
+callpath=$(dirname $0)
+currentpath=$(pwd)
+cd $callpath
+
 . ./TVShow.cfg
 
-div=$(cat ./$devider)
+div=$(cat $devider)
 
 echo
 echo $div

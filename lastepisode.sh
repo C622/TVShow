@@ -9,22 +9,30 @@ else
 fi
 
 if [ -d "$showpath" ]; then
-	seasonpath=$(echo "Season $(ls -t1 "$showpath" | grep '^Season' | sed -E 's/^Season ([0-9]*).*$/\1/' | sort -n -r | head -n 1)")
-	seasonnum=$(sed -E 's/^Season (.*)/\1/' <<< $seasonpath)
-	printf "$seasonnum\n"
+	seasonnum=$(ls -t1 "$showpath" | grep '^Season' | sed -E 's/^Season ([0-9]*).*$/\1/' | sort -n -r | head -n 1)
+	seasonpath=$(echo "Season $seasonnum")
 else
 	echo "Show path not there!"
 	exit 2
 fi
 
 if [ -d "$showpath"/"$seasonpath" ]; then
-	ls -1 "$showpath"/"$seasonpath" | \
+	episodenum=$(ls -1 "$showpath"/"$seasonpath" | \
 	sed -E 's/^.*[Ss][0-9][0-9].*[Ee]([0-9][0-9]).*/\1/' | \
 	sed -E 's/^.*[0-9][0-9]x([0-9][0-9]).*/\1/' | \
 	sort -r | \
 	sed 's/^0//' | \
-	head -n 1
+	head -n 1)
+fi
+
+if ! [ -z "$seasonnum" ]; then 
+	printf "$seasonnum\n"
 else
-	echo "Episode path not there?!"
-	exit 3
+	printf "S-NON\n"
+fi
+
+if ! [ -z "$episodenum" ]; then
+	printf "$episodenum\n"
+else
+	printf "E-NON\n"
 fi

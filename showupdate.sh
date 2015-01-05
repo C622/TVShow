@@ -1,16 +1,22 @@
 #!/bin/bash
 
-div=$(cat ./devider.txt)
+callpath=$(dirname $0)
+currentpath=$(pwd)
+cd $callpath
+
+. ./TVShow.cfg
+
+div=$(cat $devider)
 
 echo
 echo $div
 echo "showlist.cfg Updating..."
 echo $div
 
-rm ./ShowIndex/showlist.cfg
-rm ./ShowIndex/showlistSD.cfg
-rm ./ShowIndex/showlistHD.cfg
-rm ./ShowIndex/showlistNO.cfg
+rm $indexfiles/showlist.cfg
+rm $indexfiles/showlistSD.cfg
+rm $indexfiles/showlistHD.cfg
+rm $indexfiles/showlistNO.cfg
 
 while read -r VarShow
 do
@@ -22,23 +28,22 @@ do
  
   if [[ $VarQuality == 'quality = "SD"' ]]
   then
-	echo "$VarPrint" >> ./ShowIndex/showlist.cfg
-    echo "$VarPrint" >> ./ShowIndex/showlistSD.cfg
+	echo "$VarPrint" >> $indexfiles/showlist.cfg
+    echo "$VarPrint" >> $indexfiles/showlistSD.cfg
     echo "$VarPrint >>> SD!"
   fi
 
   if [[ $VarQuality == 'quality = "HD"' ]]
   then
-	echo "$VarPrint" >> ./ShowIndex/showlist.cfg
-    echo "$VarPrint" >> ./ShowIndex/showlistHD.cfg
+	echo "$VarPrint" >> $indexfiles/showlist.cfg
+    echo "$VarPrint" >> $indexfiles/showlistHD.cfg
     echo "$VarPrint >>> HD!"
   fi
 
   if [[ $VarQuality == 'quality = "NO"' ]]
   then
-	# echo "$VarPrint" >> ./ShowIndex/showlist.cfg
-    echo "$VarPrint" >> ./ShowIndex/showlistNO.cfg
+    echo "$VarPrint" >> $indexfiles/showlistNO.cfg
     echo "$VarPrint >>> NO!"
   fi
  
-done < ./TVshows.cfg
+done < $showlist

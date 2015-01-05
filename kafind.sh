@@ -3,6 +3,13 @@
 re='^[0-9]{2}$'
 re2='^[0-9]{1,2}$'
 
+function finish {
+	if [ -f /tmp/katmp_find.txt ]; then
+		rm /tmp/katmp_find.txt
+	fi
+}
+trap finish EXIT
+
 ## Fuction 'usage', displays usage information
 usage()
 {
@@ -84,12 +91,13 @@ gethigh()
 	if [ ! "$line_seeds_high" == 0 ]; then
 		echo "Title       : $line_titel_high"
 		echo "Upload Date : $line_uploaded_high"
-		echo "Size        : $line_size_high"
+		echo "Size        : $(($line_size_high >> 20)) MB"
 		#echo "URL         : $line_link_high"
 		echo "Leeds       : $line_leeds_high"
 		echo "Seeds       : $line_seeds_high"
 	else
 		echo "No hit for : $search_string"
+		exit 6
 	fi
 }
 
@@ -122,15 +130,20 @@ default_opt ()
 	cat /tmp/katmp_find.txt
 }
 
+movie_title=
 search_title=
 search_season=
 search_episode=
 select_option=1
 resolution="NOT"
 
-while getopts “mdphs:e:t:r:” OPTION
+while getopts “m:dphs:e:t:r:” OPTION
 do
 	case $OPTION in
+		m)
+			## Get Title for Movie serach
+			movie_title=$OPTARG
+			;;
 		t)
 			## Get Title to search for
 			search_title=$OPTARG
@@ -236,6 +249,4 @@ case $select_option in
 	;;
 esac
 
-if [ -f /tmp/katmp_find.txt ]; then
-	rm /tmp/katmp_find.txt
-fi
+exit 0

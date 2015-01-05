@@ -26,33 +26,35 @@ trap unhide_cursor EXIT
 getlist()
 {
 btc list | \
-grep -E '"name"|"progress"|"state"|"size"|"order"' | \
+grep -E '"name"|"progress"|"state"|"size"|"order"|"upload_rate"|"download_rate"' | \
 sed -e 's/^.*"name": "\(.*\)".*$/name="\1"/' | \
 sed -e 's/^.*"progress": \(.*.[0-9]\).*$/progress="\1"/' | \
 sed -e 's/^.*"size": \([0-9]*\).*$/size="\1"/' | \
 sed -e 's/^.*"state": "\(.*\)".*$/state="\1"/' | \
-sed -e 's/^.*"order": \([0-9]*\).*$/order="\1"/' > $TEMPFILE1
+sed -e 's/^.*"order": \([0-9]*\).*$/order="\1"/' | \
+sed -e 's/^.*"upload_rate": \([0-9]*\).*$/upload_rate="\1"/' | \
+sed -e 's/^.*"download_rate": \([0-9]*\).*$/download_rate="\1"/' > $TEMPFILE1
 
 while read -r Line1; do
 	read -r Line2
 	read -r Line3
 	read -r Line4
 	read -r Line5
+	read -r Line6
+	read -r Line7
 	echo $Line1 > $TEMPFILE2
 	echo $Line2 >> $TEMPFILE2
 	echo $Line3 >> $TEMPFILE2
 	echo $Line4 >> $TEMPFILE2
 	echo $Line5 >> $TEMPFILE2
+	echo $Line6 >> $TEMPFILE2
+	echo $Line7 >> $TEMPFILE2
 	
 	. $TEMPFILE2
 	
-	printf "Order ..... : $order \033[K \n" >> $TEMPFILE3
-	printf "Name ...... : $name \033[K \n" >> $TEMPFILE3
-	printf "Progress .. : $progress %% \033[K \n" >> $TEMPFILE3
-	printf "Size ...... : $(($size >> 20)) MB \033[K \n" >> $TEMPFILE3
-	printf "State ..... : $state \033[K \n \033[K \n" >> $TEMPFILE3
+	printf "Name : $name \033[K \n" >> $TEMPFILE3
+	printf "#$order  //  State : $state  //  Progress : $progress %%  //  Size : $(($size >> 20)) MB  //  Up : $(($upload_rate >> 10)) KBit/s  //  Down : $(($download_rate >> 10)) KBit/s\033[K \n \033[K \n" >> $TEMPFILE3
 done < $TEMPFILE1
-
 
 if [ -f $TEMPFILE3 ]
 then
@@ -69,6 +71,11 @@ clear
 while true; do
 	# Move the cursor to the top of the screen but don't clear the screen
     printf '\033[;H'
+	
 	getlist
+	
+	## Clear to the end of screen
+	printf '\x1b[J'
+	
     sleep 1
 done
