@@ -3,18 +3,14 @@
 dirpath=$1
 season=$2
 showname=$3
+high_season=$4
+high_episode=$5
 match=0
 
 ## If no path given -----> Current path will be used
-if [ -z "$dirpath" ]
-then
+if [ -z "$dirpath" ]; then
 	dirpath=$(pwd)
 fi
-
-## High mark
-high_mark=$(showinfo -n -s $showname)
-high_season=$((grep "Season " | sed "s/Season //" | bc) <<< "$high_mark")
-high_episode=$((grep "Episode " | sed "s/Episode //" | bc) <<< "$high_mark")
 
 function find_gap ()
 {
@@ -23,8 +19,7 @@ function find_gap ()
 
 	size=${#list[@]}
 
-	if [[ $size == 0 ]]
-	then
+	if [[ $size == 0 ]]; then
 		echo "$dirpath"
 		echo "No episodes found in folder"
 		echo 
@@ -33,40 +28,24 @@ function find_gap ()
 
 	first=${list[0]}
 #	last=${list[$size-1]}
-    last=$((./episodenames.sh $showname $season | tail -n2 | head -n1 | sed 's/Episode //') | bc)
-	
+    last=$(./episodenames.sh $showname $season | tail -n2 | head -n1 | sed -E 's/Episode ([0-9]{1,2}).*$/\1/' | bc)
+
+
 	if [[ $season == $high_season ]]; then
-		echo "High Season for $showname is $high_season"
-		echo "Look at Season $season"
-		if [[ $last > $high_episode ]]; then
-			echo "Last episode was $last"
-			echo "==> will set to $high_episode"
+		if (( "$last" > "$high_episode" )); then
 			last=$high_episode
 		fi
 	fi
 	
-	# echo "Show name          : $showname"
-	# echo "Season             : $season"
-	# echo "Number of episodes : $size"
-	# echo "First episode      : $first"
-	# echo "Last episode       : $last"
-	# echo "Missing episodes   :"
-	# echo
-
-	for i in $(seq 1 $first)
-	do
+	for i in $(seq 1 $first); do
 		found=0
-		for j in $(seq 0 $[size-1])
-		do
-			if [ ${list[$j]} == $i ]
-			then
+		for j in $(seq 0 $[size-1]); do
+			if [ ${list[$j]} == $i ]; then
 				found=1
 			fi
 		done
-		if [ $found == 0 ]
-		then
-			if [ $match == 0 ]
-			then
+		if [ $found == 0 ]; then
+			if [ $match == 0 ]; then
 				echo "$dirpath"
 			fi
 			echo "$showname S$season E$i"
@@ -74,22 +53,16 @@ function find_gap ()
 		fi
 	done
 
-	if ! [[ "$first" == "$last" ]]
-	then
-		for i in $(seq $[first+1] $last)
-		do
+	if ! [[ "$first" == "$last" ]]; then
+		for i in $(seq $[first+1] $last); do
 			found=0
-			for j in $(seq 0 $[size-1])
-			do
-				if [ ${list[$j]} == $i ]
-				then
+			for j in $(seq 0 $[size-1]); do
+				if [ ${list[$j]} == $i ]; then
 					found=1
 				fi
 			done
-			if [ $found == 0 ]
-			then
-				if [ $match == 0 ]
-				then
+			if [ $found == 0 ]; then
+				if [ $match == 0 ]; then
 					echo "$dirpath"
 				fi
 				echo "$showname S$season E$i"
@@ -98,10 +71,9 @@ function find_gap ()
 		done
 	fi
 	
-	if [ $match == 1 ]
-	then
-		echo
-	fi
+	# if [ $match == 1 ]; then
+	# 	echo
+	# fi
 }
 
 find_gap
