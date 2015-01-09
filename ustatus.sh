@@ -52,6 +52,10 @@ while read -r Line1; do
 	
 	. $TEMPFILE2
 	
+	if [ $state == "ERROR" ]; then
+		uclear
+	fi
+	
 	printf "Name : $name \033[K \n" >> $TEMPFILE3
 	printf "#$order  //  State : $state  //  Progress : $progress %%  //  Size : $(($size >> 20)) MB  //  Up : $(($upload_rate >> 10)) KBit/s  //  Down : $(($download_rate >> 10)) KBit/s\033[K \n \033[K \n" >> $TEMPFILE3
 done < $TEMPFILE1
