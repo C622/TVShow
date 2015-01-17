@@ -1,0 +1,58 @@
+#!/bin/bash
+
+##  Values used with "function printm"
+if [ -z $printm_WIDTH ]; then
+	printm_WIDTH=25
+fi
+width_FUNC=$((printm_WIDTH - 2))
+line_FUNC=$(printf "%${width_FUNC}s" | tr ' ' '.')
+
+
+##  "function printm" takes two argument strings.
+##  Value $printm_WIDTH will sets the width of the output.
+##  Default value for printm_WIDTH is 25.
+##
+##  eks. use:
+##  printm "Name" "Under the Dome"
+##  eks. output:
+##  Name ..... : Under the Dome
+function printm {
+	PROC_NAME_FUNC=$1
+	STRING_FUNC=$2
+	
+	if (( ${#PROC_NAME_FUNC} > $width_FUNC )); then
+		PROC_NAME_FUNC=$(printf "%.$((width_FUNC - 1))s" "$PROC_NAME_FUNC")
+	fi
+
+	printf '%s' "$PROC_NAME_FUNC" " "
+	printf '%0.*s' $((width_FUNC - ${#PROC_NAME_FUNC})) "$line_FUNC"
+	printf '%s' " : "
+	printf '%s\n' "$STRING_FUNC"
+}
+
+function nl {
+	printf '\n'
+}
+
+function printdl {
+	if [[ $TERM == "dumb" ]]; then
+		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' =
+	else
+		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' =
+	fi
+}
+
+function printl {
+	if [[ $TERM == "dumb" ]]; then
+		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' -
+	else
+		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+	fi
+}
+
+
+## Function to print to screen and to log-file
+function plog {
+	printf "$1\n"
+	printf "$1\n" >> $logfile
+}
