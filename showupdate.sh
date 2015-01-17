@@ -1,17 +1,41 @@
 #!/bin/bash
 
-callpath=$(dirname $0)
-currentpath=$(pwd)
-cd $callpath
+## Script start...
+## Change working directory to path of the called scripted
+## This needs to be done regradless if the scripted is called direct or using a link
+
+if [ -L $0 ]; then
+        script_name=`readlink $0`
+        script_path=`dirname $script_name`
+        script_file=`basename $script_name`
+else
+        script_path=`dirname $0`					# relative
+        script_path=`( cd $script_path && pwd )`	# absolutized and normalized
+        script_file=`basename $0`
+fi
+
+if [ -z "$script_path" ] ; then
+  exit 1
+fi
+
+current_path=`pwd`
+cd $script_path
+
+## Working directory is now set to the path of the called script
+## Tree values are set:
+## script_path  : Path of the called script
+## script_file  : Name of the called script
+## current_path : Path where is script was called from (Current path at that time)
 
 . ./TVShow.cfg
 
-div=$(cat $devider)
+printm_WIDTH=30
+. $installpath/strings.func
 
 echo
-echo $div
-echo "showlist.cfg Updating..."
-echo $div
+printl
+echo "showlist config-files Updating..."
+printl
 
 rm $indexfiles/showlist.cfg
 rm $indexfiles/showlistSD.cfg
@@ -30,20 +54,20 @@ do
   then
 	echo "$VarPrint" >> $indexfiles/showlist.cfg
     echo "$VarPrint" >> $indexfiles/showlistSD.cfg
-    echo "$VarPrint >>> SD!"
+    printm "$VarPrint" "showlistSD.cfg"
   fi
 
   if [[ $VarQuality == 'quality = "HD"' ]]
   then
 	echo "$VarPrint" >> $indexfiles/showlist.cfg
     echo "$VarPrint" >> $indexfiles/showlistHD.cfg
-    echo "$VarPrint >>> HD!"
+    printm "$VarPrint" "showlistHD.cfg"
   fi
 
   if [[ $VarQuality == 'quality = "NO"' ]]
   then
     echo "$VarPrint" >> $indexfiles/showlistNO.cfg
-    echo "$VarPrint >>> NO!"
+    printm "$VarPrint" "showlistNO.cfg"
   fi
  
 done < $showlist

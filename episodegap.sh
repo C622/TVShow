@@ -1,5 +1,37 @@
 #!/bin/bash
 
+## Script start...
+## Change working directory to path of the called scripted
+## This needs to be done regradless if the scripted is called direct or using a link
+
+if [ -L $0 ]; then
+	script_name=`readlink $0`
+	script_path=`dirname $script_name`
+	script_file=`basename $script_name`
+else
+	script_path=`dirname $0`					# relative
+	script_path=`( cd $script_path && pwd )`	# absolutized and normalized
+	script_file=`basename $0`
+fi
+
+if [ -z "$script_path" ] ; then
+  exit 1
+fi
+
+current_path=`pwd`
+cd $script_path
+
+## Working directory is now set to the path of the called script
+## Tree values are set: 
+## script_path	: Path of the called script
+## script_file	: Name of the called script
+## current_path	: Path where is script was called from (Current path at that time)
+
+. ./TVShow.cfg
+
+printm_WIDTH=25
+. $installpath/strings.func
+
 dirpath=$1
 season=$2
 showname=$3
@@ -9,8 +41,30 @@ match=0
 
 ## If no path given -----> Current path will be used
 if [ -z "$dirpath" ]; then
-	dirpath=$(pwd)
+	dirpath=$current_path
 fi
+
+## If no high_season given -----> Set to 99
+if [ -z "$high_season" ]; then
+	high_season=99
+fi
+
+## If no high_episode given -----> Set to 99
+if [ -z "$high_episode" ]; then
+	high_episode=99
+fi
+
+## If no season given -----> Set to number on folder
+if [ -z "$season" ]; then
+	season=`sed 's/^.*Season //' <<< $dirpath`
+fi
+
+## If no showname given -----> Set to last in list
+if [ -z "$showname" ]; then
+#	last=${list[$size-1]}
+	showname=`sed 's/^.*\/\(.*\)\/Season .*$/\1/' <<< $dirpath`
+fi
+
 
 function find_gap ()
 {
@@ -20,23 +74,29 @@ function find_gap ()
 	size=${#list[@]}
 
 	if [[ $size == 0 ]]; then
-		echo "$dirpath"
-		echo "No episodes found in folder"
-		echo 
+		printm "Path" "$dirpath"
+		printm "Error" "No episodes found in folder"
 		exit 1
 	fi
 
 	first=${list[0]}
-#	last=${list[$size-1]}
-    last=$(./episodenames.sh $showname $season | tail -n2 | head -n1 | sed -E 's/Episode ([0-9]{1,2}).*$/\1/' | bc)
 
+	last=$(./episodenames.sh $showname $season | tail -n2 | head -n1 | sed -E 's/Episode ([0-9]{1,2}).*$/\1/' | bc)		
+	
+	if [ -z "$last" ]; then
+		last=${list[$size-1]}
+	fi
+
+	# printm "showname" "$showname"
+	# printm "season" "$season"
+	# printm "last" "$last"
 
 	if [[ $season == $high_season ]]; then
 		if (( "$last" > "$high_episode" )); then
 			last=$high_episode
 		fi
 	fi
-	
+		
 	for i in $(seq 1 $first); do
 		found=0
 		for j in $(seq 0 $[size-1]); do
@@ -46,9 +106,9 @@ function find_gap ()
 		done
 		if [ $found == 0 ]; then
 			if [ $match == 0 ]; then
-				echo "$dirpath"
+				printm "Path" "$dirpath"
 			fi
-			echo "$showname S$season E$i"
+			printm "* Missing Episode" "$showname S$season E$i"
 			match=1
 		fi
 	done
@@ -63,9 +123,9 @@ function find_gap ()
 			done
 			if [ $found == 0 ]; then
 				if [ $match == 0 ]; then
-					echo "$dirpath"
+					printm "Path" "$dirpath"
 				fi
-				echo "$showname S$season E$i"
+				printm "* Missing Episode" "$showname S$season E$i"
 				match=1
 			fi
 		done

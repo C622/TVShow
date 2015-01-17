@@ -1,15 +1,43 @@
 #!/bin/bash
 
-callpath=$(dirname $0)
-currentpath=$(pwd)
-cd $callpath
+## Script start...
+## Change working directory to path of the called scripted
+## This needs to be done regradless if the scripted is called direct or using a link
+
+if [ -L $0 ]; then
+	script_name=`readlink $0`
+	script_path=`dirname $script_name`
+	script_file=`basename $script_name`
+else
+	script_path=`dirname $0`					# relative
+	script_path=`( cd $script_path && pwd )`	# absolutized and normalized
+	script_file=`basename $0`
+fi
+
+if [ -z "$script_path" ] ; then
+  exit 1
+fi
+
+current_path=`pwd`
+cd $script_path
+
+## Working directory is now set to the path of the called script
+## Tree values are set: 
+## script_path	: Path of the called script
+## script_file	: Name of the called script
+## current_path	: Path where is script was called from (Current path at that time)
 
 . ./TVShow.cfg
+
+printm_WIDTH=25
+. $installpath/strings.func
+
+./TVcheck.sh -i
 
 ## Fuction 'usage', displays usage information
 function usage {
 cat << EOF
-usage: $0 options
+usage: $script_path/$script_file options
 
 This script has the following options.
 
@@ -28,7 +56,7 @@ function gap_one {
 	IFS=$'\r\n'
 	season_paths=$(ls -1 $showpath | grep "Season ")
 
-	echo "Checking... $showname"
+	printm "Show name" "$showname"
 
 	## High mark
 	high_mark=$(showinfo -n -s "$showname")
@@ -37,7 +65,7 @@ function gap_one {
 
 	while read -r line; do
 		line_num=$(sed 's/^Season //' <<< $line)
-		echo " --> $line"
+		printm " - Checking folder" "$line"
 		./episodegap.sh "$showpath/$line" $line_num $showname $high_season $high_episode
 	done <<< "$season_paths"
 	
@@ -45,10 +73,18 @@ function gap_one {
 }
 
 function gap_all {
-	while read line_titel; do
+	IFS=$'\r\n'
+	FILE=(`cat $indexfiles/showlist.cfg`)
+	count_line=1
+	file_lines=${#FILE[@]}
+	for line_titel in "${FILE[@]}"; do
 		SERACH=$line_titel
 		gap_one
-	done < $indexfiles/showlist.cfg
+		if (( $file_lines > $count_line )); then
+			nl
+			(( count_line++ ))
+		fi
+	done
 }
 
 while getopts “has:” opt_val; do
