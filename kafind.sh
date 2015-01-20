@@ -2,6 +2,7 @@
 
 re='^[0-9]{2}$'
 re2='^[0-9]{1,2}$'
+log_add="/Users/chris/Documents/Scripts/TVShow/log/TVadded.log"
 
 function finish {
 	if [ -f /tmp/katmp_find.txt ]; then
@@ -121,7 +122,8 @@ printlist ()
 
 btc_download ()
 {
-	btc add -u "$line_link_high"
+	/usr/local/bin/btc add -u "$line_link_high"
+	echo "$(date) : $line_titel_high" >> $log_add
 }
 
 default_opt ()

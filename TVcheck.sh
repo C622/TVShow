@@ -132,5 +132,6 @@ fi
 if (( $silent_index )) ; then
 	exec 1>&6 6>&-
 	exec 2>&7 7>&-
-	printf "\r           \r"
+	## Delete before courser and return to start of line
+	printf "\033[1K\r"
 fi

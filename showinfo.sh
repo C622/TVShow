@@ -36,8 +36,6 @@ re='^[0-9]+$'
 printm_WIDTH=34
 . $installpath/strings.func
 
-./TVcheck.sh -i
-
 ## Function 'usage', displays usage information
 function usage
 {
@@ -62,15 +60,27 @@ function serach
 {
 #showget=$(grep -iA 1 "$SERACH" $installpath/$showlist | sed -n -e 's/url = "\(.*\)"/\1/p' | head -n1)
 
-showget=$(grep -iA 1 "$SERACH" $installpath/$showlist | head -n2)
-showget_url=$(echo "$showget" | sed -n -e 's/url = "\(.*\)"/\1/p')
-showget_name=$(echo "$showget" | sed -n -e 's/name = "\(.*\)"/\1/p')
+## Try and match the serach, at the start of of the show names
+showget=$(grep -iA 1 "^name = \"$SERACH" $installpath/$showlist)
 
+## If there is no match at the start, try and find one somewhere in the show names
+if (( $? )); then
+	showget=$(grep -iA 1 "^name = .*$SERACH" $installpath/$showlist | head -n2)
+else
+	showget=$(head -n2 <<< "$showget")
+fi
+
+## If there is no match found, exit!
 if [[ $showget == "" ]]
 then
 	echo "No match!"
 	exit 1
 fi
+
+## Split the result in to URL and NAME values
+showget_url=$(echo "$showget" | sed -n -e 's/url = "\(.*\)"/\1/p')
+showget_name=$(echo "$showget" | sed -n -e 's/name = "\(.*\)"/\1/p')
+
 
 $installpath/showgetinfo.pl $showget_url > $tmpfile
 
@@ -104,36 +114,36 @@ function disp_new
 
 function disp_serach
 {
-	echo "Looking for: $SERACH"
-	echo "URL: $showget_url"
+	echo "Looking For : $SERACH"
+	echo "URL : $showget_url"
 	printdl
 
 	clean_string
 	
-	printm "Show name" "$show"
+	printm "Show Name" "$show"
 	printm "Clean // .cfg name" "$my_clean_string // $showget_name" 
-	printm "Config file" "$showcfg"
-	printm "State" "$state"
+	printm "Config File" "$showcfg"
+	printm "Show State" "$state"
 	if ! [[ $state =~ ^Ended.*$ ]]; then
 		nl
-		printm "Previous episode aried" "$last"
-		printm "Titel of previous episode" "$last_titel"
-		printm "Season of previous episode" "$last_season"
-		printm "Previous episode" "$last_episode"
+		printm "Previous Episode Aried" "$last"
+		printm "Titel of Previous Episode" "$last_titel"
+		printm "Season of Previous Episode" "$last_season"
+		printm "Previous Episode" "$last_episode"
 		nl
-		printm "Next episode will air" "$next"
-		printm "Titel of next episode" "$next_titel"
-		printm "Seaon of next episode" "$next_season"
-		printm "Next episode" "$next_episode"
+		printm "Next Episode Will Air" "$next"
+		printm "Titel of Next Episode" "$next_titel"
+		printm "Seaon of Next Episode" "$next_season"
+		printm "Next Episode" "$next_episode"
 	fi
 	nl
 
 	while read FILE; do
 		read -r StoreSeason
 		read -r StoreEpisode
-		printm "Show stored" "$FILE"
-		printm "Season of last episode in store" "$StoreSeason"
-		printm "Last episode in store" "$StoreEpisode"
+		printm "Show Stored" "$FILE"
+		printm "Season of Last Episode in Store" "$StoreSeason"
+		printm "Last Episode in Store" "$StoreEpisode"
 	done < "$showcfg"
 }
 
@@ -167,7 +177,7 @@ function rundownload
 	done < "$showcfg"
 
 	echo ""
-	echo "Show name ....................... : $show"
+	printm "Show Name" "$show"
 
 	if ! [[ $last_season =~ $re ]] ; then
 	   echo "error: last_season Not a number"
@@ -187,59 +197,61 @@ function rundownload
 #	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
 	if (( "$last_season" == "$StoreSeason" )); then
+		printm "Season of Last Aired Episode" "$last_season = Store ($StoreSeason)"
 		if (( "$last_episode" == "$StoreEpisode" )); then
-			echo "Last Season ..................... : $last_season <-> $StoreSeason -> Same as in store"
-			echo "Last Episode .................... : $last_episode <-> $StoreEpisode -> We have this one!"
-		fi
-		if (( "$last_episode" > "$StoreEpisode" )); then
-			echo "   -> Last Season ............... : $last_season <-> $StoreSeason -> Same as in store"
-			echo "   -> Last Episode .............. : $last_episode <-> $StoreEpisode =====> LET'S GET THIS ONE!!!"
+			printm "Last Aired Episode" "$last_episode = Store ($StoreEpisode)"
+		else
+			if (( "$last_episode" > "$StoreEpisode" )); then
+				printm "   -> Last Aired Episode" "$last_episode > Store ($StoreEpisode) ===> Newer Than Last Episode in Store, Download..."
 			
-			case $download_flag in
-				1)
-				nl
-				kafind -t "$my_clean_string" -s $last_season -e $last_episode -d
-				nl
-				;;
-				2)
-				nl
-				kafind -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
-				nl
-				;;
-				3)
-				nl
-				kafind -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
-				nl
-				;;
-			esac
+				case $download_flag in
+					1)
+					nl
+					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d
+					nl
+					;;
+					2)
+					nl
+					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
+					nl
+					;;
+					3)
+					nl
+					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
+					nl
+					;;
+				esac
+			else
+				printm "Last Aired Episode" "$last_episode < Store ($StoreEpisode) ===> Lower Than Episode in Store"
+			fi
 		fi
 	fi
 
 	if (( "$last_season" > "$StoreSeason" )); then
-		echo "   -> Last Season ............... : $last_season <-> $StoreSeason -> Greater than in store!"
-		echo "   -> Last Episode .............. : $last_episode <-> $StoreEpisode =====> LET'S GET THIS ONE!!! And others?"
+		printm "   -> Season of Last Aired Episode" "$last_season > Store ($StoreSeason)"
+		printm "   -> Last Aired Episode" "$last_episode <> Store ($StoreEpisode) ===> Newer Than Last Episode in Store, Download..."
 
 		case $download_flag in
 			1)
 			nl
-			kafind -t "$my_clean_string" -s $last_season -e $last_episode -d
+			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d
 			nl
 			;;
 			2)
 			nl
-			kafind -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
+			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
 			nl
 			;;
 			3)
 			nl
-			kafind -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
+			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
 			nl
 			;;
 		esac
 	fi
 	
 	if (( "$last_season" < "$StoreSeason" )); then
-		echo "Last Season ..................... : $last_season <-> $StoreSeason -> No use!"
+		printm "Season of Last Aired Episode" "$last_season < Store ($StoreSeason) -> Lower Than Season in Store"
 	fi
 }
 
@@ -274,10 +286,12 @@ if [[ $download_flag == 1 ]]; then
 fi
 
 if ! [[ -z $SERACH ]]; then
-	serach
 	if [[ $new_flag == 1 ]]; then
+		serach
 		disp_new
 	else
+		./TVcheck.sh -i
+		serach
 		disp_serach
 	fi
 	if [[ $download_flag != 0 ]]; then

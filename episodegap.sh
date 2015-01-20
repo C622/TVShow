@@ -87,9 +87,9 @@ function find_gap ()
 		last=${list[$size-1]}
 	fi
 
-	# printm "showname" "$showname"
-	# printm "season" "$season"
-	# printm "last" "$last"
+	 # printm "showname" "$showname"
+	 # printm "season" "$season"
+	 # printm "last" "$last"
 
 	if [[ $season == $high_season ]]; then
 		if (( "$last" > "$high_episode" )); then

@@ -19,9 +19,10 @@ fi
 if [ -d "$showpath"/"$seasonpath" ]; then
 	episodenum=$(ls -1 "$showpath"/"$seasonpath" | \
 	sed -E 's/^.*[Ss][0-9][0-9].*[Ee]([0-9][0-9]).*/\1/' | \
-	sed -E 's/^.*[0-9][0-9]x([0-9][0-9]).*/\1/' | \
+	sed -E 's/^.*[0-9]{1,2}x([0-9][0-9]).*/\1/' | \
 	sort -r | \
 	sed 's/^0//' | \
+	grep "^[0-9]" | \
 	head -n 1)
 fi
 

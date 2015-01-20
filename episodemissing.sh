@@ -49,19 +49,46 @@ EOF
 }
 
 function gap_one {
-	showname=$(grep -i "$SERACH" $installpath/$showlist | sed -n -e 's/name = "\(.*\)"/\1/p' | head -n1)
+#	showname=$(grep -i "$SERACH" $installpath/$showlist | sed -n -e 's/name = "\(.*\)"/\1/p' | head -n1)
+
+	## Try and match the serach, at the start of of the show names
+	showname=$(grep -iA 1 "^name = \"$SERACH" $installpath/$showlist)
+
+	## If there is no match at the start, try and find one somewhere in the show names
+	if (( $? )); then
+		showname=$(grep -iA 1 "^name = .*$SERACH" $installpath/$showlist | head -n1)
+	else
+		showname=$(head -n1 <<< "$showname")
+	fi
+
+	## If there is no match found, exit!
+	if [[ $showname == "" ]]
+	then
+		echo "No match!"
+		exit 1
+	fi
+
+	showname=$(echo "$showname" | sed -n -e 's/name = "\(.*\)"/\1/p')
+
 	showpath=$(head -n1 "$indexfiles/$showname.cfg")
+	
+	printm "Show name" "$showname"
+
+	if [[ $showpath == "Show path not there!" ]]; then
+		printm "Error" "Nothing in Store for That Show!"
+		exit 1
+	fi
 
 	IFS_store=$IFS
 	IFS=$'\r\n'
 	season_paths=$(ls -1 $showpath | grep "Season ")
 
-	printm "Show name" "$showname"
-
 	## High mark
 	high_mark=$(showinfo -n -s "$showname")
-	high_season=$(echo "$high_mark" | grep "Season " | sed "s/Season //" | bc)
-	high_episode=$(echo "$high_mark" | grep "Episode " | sed "s/Episode //" | bc)
+	high_season=$(echo "$high_mark" | head -n 1 | sed 's/Season //' | tr -d $'\r' | bc )
+	high_episode=$(echo "$high_mark" | tail -n 1 | sed 's/Episode //' | tr -d $'\r' | bc )
+
+	printm "High mark" "Season $high_season Episode $high_episode"
 
 	while read -r line; do
 		line_num=$(sed 's/^Season //' <<< $line)

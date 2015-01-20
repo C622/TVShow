@@ -49,11 +49,11 @@ printm_WIDTH=34
 	printl
 
 	### Calling another bash script that will delete empty folders ###
-	printm "Delete empty folders" "$(date)"
+	printm "Delete Empty Folders" "$(date)"
 	printl
 	~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload
 
 	### Copy some key log-files to my Dropbox ###
 	cp "$logpath/TV.log" ~/Dropbox/logs/TV.log
-	cp "$logpath/TorrentDownload.log" ~/Dropbox/logs/TorrentDownload.log
+	cp "$logpath/TVadded.log" ~/Dropbox/logs/TVadded.log
 } 2>&1 | tee $logpath/$logfile
