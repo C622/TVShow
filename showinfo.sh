@@ -202,7 +202,8 @@ function rundownload
 			printm "Last Aired Episode" "$last_episode = Store ($StoreEpisode)"
 		else
 			if (( "$last_episode" > "$StoreEpisode" )); then
-				printm "   -> Last Aired Episode" "$last_episode > Store ($StoreEpisode) ===> Newer Than Last Episode in Store, Download..."
+				printm "   -> Last Aired Episode" "$last_episode > Store ($StoreEpisode)"
+				echo "Newer Than Last Episode in Store, Download..."
 			
 				case $download_flag in
 					1)
@@ -222,14 +223,16 @@ function rundownload
 					;;
 				esac
 			else
-				printm "Last Aired Episode" "$last_episode < Store ($StoreEpisode) ===> Lower Than Episode in Store"
+				printm "Last Aired Episode" "$last_episode < Store ($StoreEpisode)"
+				echo "error: Lower Than Episode in Store"
 			fi
 		fi
 	fi
 
 	if (( "$last_season" > "$StoreSeason" )); then
 		printm "   -> Season of Last Aired Episode" "$last_season > Store ($StoreSeason)"
-		printm "   -> Last Aired Episode" "$last_episode <> Store ($StoreEpisode) ===> Newer Than Last Episode in Store, Download..."
+		printm "   -> Last Aired Episode" "$last_episode <> Store ($StoreEpisode)" 
+		echo "Newer Than Last Season in Store, Download..."
 
 		case $download_flag in
 			1)
@@ -251,7 +254,8 @@ function rundownload
 	fi
 	
 	if (( "$last_season" < "$StoreSeason" )); then
-		printm "Season of Last Aired Episode" "$last_season < Store ($StoreSeason) -> Lower Than Season in Store"
+		printm "Season of Last Aired Episode" "$last_season < Store ($StoreSeason)"
+		echo "error: Lower Than Season in Store"
 	fi
 }
 

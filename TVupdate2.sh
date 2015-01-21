@@ -32,23 +32,34 @@ cd $script_path
 printm_WIDTH=34
 . $installpath/strings.func
 
-### Use rotatelog script to make default log spot avalibel ###
+### Use rotatelog script to make default log spot avalibel
 ./rotatelog.sh > "$logpath/rotatelog.log" 2>&1
 
+### Lines inside the {} will have STDOUT and STDERR will tee'ed to logfile
 {
+	### Call TVcheck.sh script - To update index files, if needed
+	printl
+	printm "TVcheck.sh script" "$(date)"
+	printl
+	./TVcheck.sh
+	nl
+
+	### Download SD shows
 	printl
 	printm "Standard Definition" "$(date)"
 	printl
 	./showinfo.sh -l "$indexfiles/showlistSD.cfg" -d SD
 	nl
+
+	### Download HD shows
 	printl
 	printm "High Definition" "$(date)"
 	printl
 	./showinfo.sh -l "$indexfiles/showlistHD.cfg" -d HD
 	nl
-	printl
 
 	### Calling another bash script that will delete empty folders ###
+	printl
 	printm "Delete Empty Folders" "$(date)"
 	printl
 	~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload

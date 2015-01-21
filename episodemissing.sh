@@ -69,10 +69,9 @@ function gap_one {
 	fi
 
 	showname=$(echo "$showname" | sed -n -e 's/name = "\(.*\)"/\1/p')
-
 	showpath=$(head -n1 "$indexfiles/$showname.cfg")
 	
-	printm "Show name" "$showname"
+	printm "Show Name" "$showname"
 
 	if [[ $showpath == "Show path not there!" ]]; then
 		printm "Error" "Nothing in Store for That Show!"
@@ -81,18 +80,18 @@ function gap_one {
 
 	IFS_store=$IFS
 	IFS=$'\r\n'
-	season_paths=$(ls -1 $showpath | grep "Season ")
+	season_paths=$(ls -1 $showpath | grep "Season " | sed 's/Season //' | sort -n | sed 's/^/Season /' )
 
 	## High mark
 	high_mark=$(showinfo -n -s "$showname")
 	high_season=$(echo "$high_mark" | head -n 1 | sed 's/Season //' | tr -d $'\r' | bc )
 	high_episode=$(echo "$high_mark" | tail -n 1 | sed 's/Episode //' | tr -d $'\r' | bc )
 
-	printm "High mark" "Season $high_season Episode $high_episode"
+	printm "High Mark" "Season $high_season Episode $high_episode"
 
 	while read -r line; do
 		line_num=$(sed 's/^Season //' <<< $line)
-		printm " - Checking folder" "$line"
+		printm " - Checking Folder" "$line"
 		./episodegap.sh "$showpath/$line" $line_num $showname $high_season $high_episode
 	done <<< "$season_paths"
 	

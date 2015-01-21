@@ -29,7 +29,7 @@ cd $script_path
 
 . ./TVShow.cfg
 
-printm_WIDTH=25
+printm_WIDTH=34
 . $installpath/strings.func
 
 large_update=0
@@ -68,8 +68,6 @@ fi
 ## Get Modyfid date and time stamp for $showlist, and value stored in TVshows_file.ini
 VarMod=$(stat -f "%Sm" $showlist)
 VarLast=$(cat TVshows_file.ini)
-
-printm "Date" "$(date)"
 
 ## If $showlist has changed run showupdate and showindex scripts
 if [[ $VarMod == $VarLast ]]; then
