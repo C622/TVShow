@@ -7,7 +7,7 @@ log='TV'
 CurrentDir=$(pwd)
 cd /Users/chris/Documents/Scripts/TVShow/log
 
-for i in {95..1}
+for i in {98..1}
 do
   val=$i
   valnew=$[$val + 1]

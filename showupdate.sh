@@ -32,7 +32,7 @@ cd $script_path
 printm_WIDTH=30
 . $installpath/strings.func
 
-echo
+nl
 printl
 echo "showlist config-files Updating..."
 printl

@@ -58,8 +58,6 @@ EOF
 ## Function 'serach', main function for serach
 function serach
 {
-#showget=$(grep -iA 1 "$SERACH" $installpath/$showlist | sed -n -e 's/url = "\(.*\)"/\1/p' | head -n1)
-
 ## Try and match the serach, at the start of of the show names
 showget=$(grep -iA 1 "^name = \"$SERACH" $installpath/$showlist)
 
@@ -138,20 +136,18 @@ function disp_serach
 	fi
 	nl
 
-	while read FILE; do
-		read -r StoreSeason
-		read -r StoreEpisode
-		printm "Show Stored" "$FILE"
-		printm "Season of Last Episode in Store" "$StoreSeason"
-		printm "Last Episode in Store" "$StoreEpisode"
-	done < "$showcfg"
+	. "$showcfg"
+
+	printm "Show Stored" "$store_path"
+	printm "Season of Last Episode in Store" "$store_season"
+	printm "Last Episode in Store" "$store_episode"
 }
 
 function runfile
 {
 	while read SERACH; do
-		StoreSeason=
-		StoreEpisode=
+		store_season=
+		store_episode=
 		last_season=
 		last_episode=
 		
@@ -171,10 +167,7 @@ function rundownload
 {
 	clean_string
 
-	while read FILE; do
-		read -r StoreSeason
-		read -r StoreEpisode
-	done < "$showcfg"
+	. "$showcfg"
 
 	echo ""
 	printm "Show Name" "$show"
@@ -183,26 +176,26 @@ function rundownload
 	   echo "error: last_season Not a number"
 	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
-	if ! [[ $StoreSeason =~ $re ]] ; then
-	   echo "error: StoreSeason Not a number : $StoreSeason"
+	if ! [[ $store_season =~ $re ]] ; then
+	   echo "error: store_season Not a number : $store_season"
 	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
 	if ! [[ $last_episode =~ $re ]] ; then
 	   echo "error: last_episode Not a number"
 	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
-	if ! [[ $StoreEpisode =~ $re ]] ; then
-		StoreEpisode="0"
-#	   echo "error: StoreEpisode Not a number"
+	if ! [[ $store_episode =~ $re ]] ; then
+		store_episode="0"
+#	   echo "error: store_episode Not a number"
 #	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
-	if (( "$last_season" == "$StoreSeason" )); then
-		printm "Season of Last Aired Episode" "$last_season = Store ($StoreSeason)"
-		if (( "$last_episode" == "$StoreEpisode" )); then
-			printm "Last Aired Episode" "$last_episode = Store ($StoreEpisode)"
+	if (( "$last_season" == "$store_season" )); then
+		printm "Season of Last Aired Episode" "$last_season = Store ($store_season)"
+		if (( "$last_episode" == "$store_episode" )); then
+			printm "Last Aired Episode" "$last_episode = Store ($store_episode)"
 		else
-			if (( "$last_episode" > "$StoreEpisode" )); then
-				printm "   -> Last Aired Episode" "$last_episode > Store ($StoreEpisode)"
+			if (( "$last_episode" > "$store_episode" )); then
+				printm "Last Aired Episode" "$last_episode > Store ($store_episode)"
 				echo "Newer Than Last Episode in Store, Download..."
 			
 				case $download_flag in
@@ -223,15 +216,15 @@ function rundownload
 					;;
 				esac
 			else
-				printm "Last Aired Episode" "$last_episode < Store ($StoreEpisode)"
+				printm "Last Aired Episode" "$last_episode < Store ($store_episode)"
 				echo "error: Lower Than Episode in Store"
 			fi
 		fi
 	fi
 
-	if (( "$last_season" > "$StoreSeason" )); then
-		printm "   -> Season of Last Aired Episode" "$last_season > Store ($StoreSeason)"
-		printm "   -> Last Aired Episode" "$last_episode <> Store ($StoreEpisode)" 
+	if (( "$last_season" > "$store_season" )); then
+		printm "Season of Last Aired Episode" "$last_season > Store ($store_season)"
+		printm "Last Aired Episode" "$last_episode <> Store ($store_episode)" 
 		echo "Newer Than Last Season in Store, Download..."
 
 		case $download_flag in
@@ -253,8 +246,8 @@ function rundownload
 		esac
 	fi
 	
-	if (( "$last_season" < "$StoreSeason" )); then
-		printm "Season of Last Aired Episode" "$last_season < Store ($StoreSeason)"
+	if (( "$last_season" < "$store_season" )); then
+		printm "Season of Last Aired Episode" "$last_season < Store ($store_season)"
 		echo "error: Lower Than Season in Store"
 	fi
 }

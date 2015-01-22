@@ -69,7 +69,10 @@ function gap_one {
 	fi
 
 	showname=$(echo "$showname" | sed -n -e 's/name = "\(.*\)"/\1/p')
-	showpath=$(head -n1 "$indexfiles/$showname.cfg")
+	#showpath=$(head -n1 "$indexfiles/$showname.cfg")
+	
+	. "$indexfiles/$showname.cfg"
+	showpath=$store_path
 	
 	printm "Show Name" "$showname"
 

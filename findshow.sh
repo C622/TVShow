@@ -21,5 +21,14 @@ fi
 
 while read pathname
 do
-	find $pathname -name "$1" -print -quit
+	show_path_tmp=`find $pathname -name "$1" -print -quit`
+	if ! [[ $show_path_tmp == '' ]]; then
+		show_path=$show_path_tmp
+	fi
 done < $installpath/$showpaths
+
+if [[ $show_path == '' ]]; then
+	echo "store_path='error'"
+else
+	echo "store_path='$show_path'"
+fi

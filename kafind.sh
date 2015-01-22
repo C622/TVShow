@@ -123,7 +123,8 @@ printlist ()
 btc_download ()
 {
 	/usr/local/bin/btc add -u "$line_link_high"
-	echo "$(date) : $line_titel_high" >> $log_add
+	echo "$(date)" >> $log_add
+	echo "$line_titel_high" >> $log_add
 }
 
 default_opt ()
