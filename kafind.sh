@@ -3,17 +3,18 @@
 re='^[0-9]{2}$'
 re2='^[0-9]{1,2}$'
 log_add="/Users/chris/Documents/Scripts/TVShow/log/TVadded.log"
+TEMPFILE=$(mktemp -t kafind)
+
 
 function finish {
-	if [ -f /tmp/katmp_find.txt ]; then
-		rm /tmp/katmp_find.txt
+	if [ -f $TEMPFILE ]; then
+		rm $TEMPFILE
 	fi
 }
 trap finish EXIT
 
 ## Fuction 'usage', displays usage information
-usage()
-{
+function usage {
 cat << EOF
 usage: $0 options
 
@@ -21,7 +22,9 @@ This script has the following options.
 
 OPTIONS:
    -m   Movie search.
+
    -t   Title to search for.
+
    -s   Season number to search for.
    -e   Episode number to search for.
 
@@ -36,13 +39,11 @@ OPTIONS:
 EOF
 }
 
-getlist()
-{
-	curl -L --compressed -s http://kickass.so/usearch/$search_string/?rss=1 | grep -E "<title>|<torrent:magnetURI>|<torrent:seeds>|<torrent:peers>|<pubDate>|<torrent:contentLength>" | grep -v "Torrents by keyword" | sed -e 's/<!\[CDATA\[//' -e 's/\]\]>//' -e 's/<[^>]*>//g' -e 's/^ *//' > /tmp/katmp_find.txt
+function getlist {
+	curl -L --compressed -s "http://kickass.so/usearch/$search_string/?rss=1&field=seeders&sorder=desc" | grep -E "<title>|<torrent:magnetURI>|<torrent:seeds>|<torrent:peers>|<pubDate>|<torrent:contentLength>" | grep -v "Torrents by keyword" | sed -e 's/<!\[CDATA\[//' -e 's/\]\]>//' -e 's/<[^>]*>//g' -e 's/^ *//' > $TEMPFILE
 }
 
-ifhigher()
-{
+function ifhigher {
 	if (( $line_leeds > $line_leeds_high )); then
 		line_size_high=$line_size
 		line_titel_high=$line_titel
@@ -53,12 +54,11 @@ ifhigher()
 	fi
 }
 
-gethigh()
-{
+function gethigh {
 	getlist
 	
-	line_leeds=0
 	line_seeds=
+	line_leeds=0
 	line_leeds_high=0
 	line_seeds_high=0
 	
@@ -87,7 +87,7 @@ gethigh()
 			fi
 		fi
 		
-	done < /tmp/katmp_find.txt
+	done < $TEMPFILE
 
 	if [ ! "$line_seeds_high" == 0 ]; then
 		echo "Title       : $line_titel_high"
@@ -102,10 +102,46 @@ gethigh()
 	fi
 }
 
-printlist ()
-{
+function getnumber {
 	getlist
+	
+	line_seeds=
+	line_leeds=
+	item_no=0
+	
+	while read line_titel
+	do
+		item_no=$((item_no + 1))
+		read line_uploaded
+		read line_size
+		read line_link
+		read line_leeds
+		read line_seeds
+		if (($item_no == $select_number)); then
+			break
+		fi
+	done < $TEMPFILE
 
+	if [ ! "$item_no" == 0 ]; then
+		echo "Title       : $line_titel"
+		echo "Upload Date : $line_uploaded"
+		echo "Size        : $(($line_size >> 20)) MB"
+		#echo "URL         : $line_link"
+		echo "Leeds       : $line_leeds"
+		echo "Seeds       : $line_seeds"
+		#echo "Item number : $item_no"		
+	else
+		echo "No hit for : $search_string"
+		exit 7
+	fi
+	
+	line_link_high=$line_link
+	line_titel_high=$line_titel
+}
+
+function printlist {
+	getlist
+	item_no=1
 	while read line_titel
 	do
 		read line_uploaded
@@ -113,40 +149,36 @@ printlist ()
 		read line_link
 		read line_leeds
 		read line_seeds
-		printf "$line_titel\n"
-		printf "     leeds:$line_leeds // seeds:$line_seeds // size:$(($line_size >> 20)) MB\n\n"
-		
-	done < /tmp/katmp_find.txt
-	
+		printf "%0.2d: %s\n" $item_no "$line_titel"
+		printf "     leeds:$line_leeds // seeds:$line_seeds // size:$(($line_size >> 20)) MB\n"
+		item_no=$((item_no + 1))
+	done < $TEMPFILE
 }
 
-btc_download ()
-{
+function btc_download {
 	/usr/local/bin/btc add -u "$line_link_high"
 	echo "$(date)" >> $log_add
 	echo "$line_titel_high" >> $log_add
+	echo  >> $log_add
 }
 
-default_opt ()
-{
+function default_opt {
 	getlist
-	cat /tmp/katmp_find.txt
+	cat $TEMPFILE
 }
 
-movie_title=
+search_movie=false
+select_download=false
+select_option=1
 search_title=
 search_season=
 search_episode=
-select_option=1
+select_number=
 resolution="NOT"
 
-while getopts “m:dphs:e:t:r:” OPTION
+while getopts “mdphn:s:e:t:r:” OPTION
 do
 	case $OPTION in
-		m)
-			## Get Title for Movie serach
-			movie_title=$OPTARG
-			;;
 		t)
 			## Get Title to search for
 			search_title=$OPTARG
@@ -186,18 +218,36 @@ do
 			select_option=2
 			;;
 		d)
-			## Download HIGHEST HIT
-			select_option=3
+			## Download
+			select_download=true
 			;;
 		h)
 			## Show HIGHEST HIT
 			select_option=4
 			;;
 		r)
-			## Resolution
+			## Check for resolution
 			resolution=$OPTARG
+			resolution=$(echo "$resolution" | tr "[:lower:]" "[:upper:]")
+
+			if [ $resolution == "HD" ]; then
+				resolution=2
+			else
+				if [ $resolution == "SD" ]; then
+					resolution=1
+				fi
+			fi
 			;;
-		?)
+		m)
+			## Get Title for Movie serach
+			search_movie=true
+			;;
+		n)
+			## Select number to download
+			select_number=$OPTARG
+			select_option=5			
+			;;
+ 		?)
 			## Default
 			usage
 			exit
@@ -210,46 +260,42 @@ if [ -z "$search_title" ]; then
 	usage
 	exit 1
 fi
-if [ -z $search_season ]; then
-	echo "No Season given!"
-	usage
-	exit 2
-fi
-if [ -z $search_episode ]; then
-	echo "No Episode given!"
-	usage
-	exit 3
-fi
-
-
-## Check for resolution
-
-resolution=$(echo "$resolution" | tr "[:lower:]" "[:upper:]")
-
-if [ $resolution == "HD" ]; then
-	resolution=2
+if $search_movie; then
+	search_string=$(echo "$search_title category%3Amovies" | sed 's/ /\%20/g')
 else
-	if [ $resolution == "SD" ]; then
-		resolution=1
+	if [ -z $search_season ]; then
+		echo "No Season given!"
+		usage
+		exit 2
 	fi
+	if [ -z $search_episode ]; then
+		echo "No Episode given!"
+		usage
+		exit 3
+	fi
+	search_string=$(echo "$search_title $search_season$search_episode" | sed 's/ /\%20/g')
 fi
 
-search_string=$(echo "$search_title $search_season$search_episode" | sed 's/ /\%20/g')
 
 case $select_option in
 	1)
-	printlist
-	;;
+		printlist
+		;;
 	2)
-	default_opt
-	;;
-	3)
-	gethigh
-	btc_download
-	;;
+		default_opt
+		;;
 	4)
-	gethigh
-	;;
+		gethigh
+		if $select_download; then
+			btc_download
+		fi
+		;;
+	5)
+		getnumber
+		if $select_download; then
+			btc_download
+		fi
+		;;
 esac
 
 exit 0
