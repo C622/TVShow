@@ -60,13 +60,15 @@ function find_show
 	printl
 	echo "name = \"$showname\""
 	echo "url = \"$showlink\""
+	echo "eztv = \"\""
 	echo "quality = \"NO\""
 		
 	if [[ $add_to_config == 1 ]]; then
-		echo ""  >> TVShows.cfg
-		echo "name = \"$showname\"" >> TVShows.cfg
-		echo "url = \"$showlink\"" >> TVShows.cfg
-		echo "quality = \"NO\"" >> TVShows.cfg
+		echo ""  >> $installpath/$showlist
+		echo "name = \"$showname\"" >> $installpath/$showlist
+		echo "url = \"$showlink\"" >> $installpath/$showlist
+		echo "eztv = \"\"" >> $installpath/$showlist
+		echo "quality = \"NO\"" >> $installpath/$showlist
 	fi
 
 }

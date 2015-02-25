@@ -32,7 +32,7 @@ cd $script_path
 printm_WIDTH=30
 . $installpath/strings.func
 
-echo
+nl
 printl
 echo "Shows $1 files Updating..."
 printl
@@ -44,4 +44,4 @@ do
 	printm "$showname" "$showname.cfg"
 done < $1
 
-stat -f "%Sm" TVShows.cfg > TVshows_file.ini
+stat -f "%Sm" $installpath/$showlist > TVshows_file.ini

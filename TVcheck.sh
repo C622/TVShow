@@ -107,7 +107,14 @@ if [ -f "TVcheck.ini" ] && [ "$large_update" == 0 ]; then
 	IFS=$IFS_SAVE
 
 	for item in "${update_list[@]}"; do
-		name_in_conf=`grep "$item" TVShows.cfg | sed -E 's/^name.*"(.*)"/\1/'`
+		## Try and match the serach, at the start of of the show names
+		name_in_conf=`grep -i "^name = \"$item" $installpath/$showlist`
+		## If there is no match at the start, try and find one somewhere in the show names
+		# if (( $? )); then
+		# 	name_in_conf=`grep -i "^name = .*$item" TVShows.cfg`
+		# fi
+		name_in_conf=`sed -E 's/^name.*"(.*)"/\1/' <<< "$name_in_conf" | head -n1`
+				
 		if [[ "$item" == "$name_in_conf" ]]; then
 			printm "$item" "$item.cfg"
 			./findshow.sh "$item" > "$indexfiles/$item.cfg"

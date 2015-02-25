@@ -45,6 +45,7 @@ rm $indexfiles/showlistNO.cfg
 while read -r VarShow
 do
   read -r VarTVURL
+  read -r VarEZTV
   read -r VarQuality
   read -r VarDrop
  

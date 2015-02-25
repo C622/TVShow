@@ -40,17 +40,26 @@ printm_WIDTH=34
 function usage
 {
 cat << EOF
-usage: $0 options
+usage: $script_path/$script_file options
 
 This script list infomation about a given show.
 
 OPTIONS:
    -h      Show this message
-   -s      Serach string
-   -l      Use list from file
-   -d      Download latest episode, if missing ... in SD or HD quality. Any other will give any quality
-   -n      Just show newest Season and Episode
 
+   -s      Serach string
+
+   -l      Use list from file
+
+   -d      Download latest episode, if missing ... in SD or HD quality. Any other will give any quality
+
+   -n      Just shows newest Season and Episode.
+   
+   -u      List upcoming Episodes, Yesterday, Tonight and Tomrrow. Information is cached, 
+           and will be valied until 6:55 the following day. 
+		   
+   -f	   Will force update of cashed information in upcoming Episodes list.
+   
 EOF
 }
 
@@ -145,22 +154,117 @@ function disp_serach
 
 function runfile
 {
-	while read SERACH; do
-		store_season=
-		store_episode=
-		last_season=
-		last_episode=
+	file_next_new_enough=false
+
+	if $upcomming_flag; then
+		date_tomorrow=`/bin/date -j -v+1d "+%d/%-m %Y"`
+		date_yesterday=`/bin/date -j -v-1d "+%d/%-m %Y"`
+		date_today=`/bin/date -j "+%d/%-m %Y"`
+		file_tomorrow="$installpath/$indexfiles/tomorrow.ini"
+		file_yesterday="$installpath/$indexfiles/yesterday.ini"
+		file_tonight="$installpath/$indexfiles/tonight.ini"
+		file_next="$installpath/$indexfiles/TVnext.ini"
 		
-		serach
-		
-		if (( $download_flag == 0 )); then
-			disp_serach
-			printl
-			nl
-		else
-			rundownload
+		if ! $force_update; then
+			if [[ -f $file_next ]]; then
+				if test `date +"%k"` -lt 7; then
+					if test `find $file_next -newermt "Yesterday 06:55"`; then
+						file_next_new_enough=true
+					fi
+				else
+					if test `find $file_next -newermt "Today 06:55"`; then
+						file_next_new_enough=true
+					fi
+				fi
+			fi
 		fi
-	done < $FILENAME
+		
+		if ! $file_next_new_enough; then
+			echo "Updating TVnext.ini..."
+			if [[ -f $file_tomorrow ]]; then
+				rm $file_tomorrow
+			fi
+			if [[ -f $file_yesterday ]]; then
+				rm $file_yesterday
+			fi
+			if [[ -f $file_tonight ]]; then
+				rm $file_tonight
+			fi
+			if [[ -f $file_next ]]; then
+				rm $file_next
+			fi			
+		fi
+	fi
+	
+	if ! $file_next_new_enough; then
+		while read SERACH; do
+			store_season=
+			store_episode=
+			last_season=
+			last_episode=
+		
+			serach
+				
+			if $upcomming_flag; then
+				
+				if [[ $next =~ ^Tonight.*$ ]]; then
+					printf "%-30.30s %-37.37s S%02d / E%02d\n" "$showget_name" "$next_titel" "$next_season" "$next_episode" >> $file_tonight
+				elif [[ $next =~ $date_tomorrow ]]; then
+					printf "%-30.30s %-37.37s S%02s / E%02d\n" "$showget_name" "$next_titel" "$next_season" "$next_episode" >> $file_tomorrow
+				fi
+		
+				if [[ $last =~ $date_yesterday ]]; then
+					showcfg=$(find $installpath/$indexfiles/* -name "$showget_name.cfg")
+					. "$showcfg"
+					printf "%-30.30s %-37.37s S%02d / E%02d" "$showget_name" "$last_titel" "$last_season" "$last_episode" >> $file_yesterday
+					if (("$store_season" == "$last_season")) && (("$store_episode" == "$last_episode")); then
+						printf " *" >> $file_yesterday
+					fi
+					printf "\n" >> $file_yesterday
+				fi
+			elif (( $download_flag == 0 )); then
+				disp_serach
+				printl
+				nl
+			else
+				rundownload
+			fi
+		done < $FILENAME
+
+		if $upcomming_flag; then
+			{
+				if [[ -f $file_yesterday ]]; then
+					printc "YESTERDAY - $date_yesterday"
+					printl
+					cat $file_yesterday | sort
+					printl
+					nl
+				fi
+				if [[ -f $file_tonight ]]; then
+					printc "TONIGHT - $date_today"
+					printl
+					cat $file_tonight | sort
+					printl
+					nl
+				fi
+				if [[ -f $file_tomorrow ]]; then
+					printc "TOMORROW - $date_tomorrow"
+					printl
+					cat $file_tomorrow | sort
+					printl
+				fi
+				echo "Updated: `/bin/date`  * Downloaded and in Store"
+			} 2>&1 | tee $file_next
+			
+			### Copy new version to Dropbox ###
+			cp $file_next ~/Dropbox/logs/
+		fi
+	fi
+	
+	if $file_next_new_enough; then
+		cat $file_next
+	fi
+	
 }
 
 function rundownload
@@ -197,24 +301,26 @@ function rundownload
 			if (( "$last_episode" > "$store_episode" )); then
 				printm "Last Aired Episode" "$last_episode > Store ($store_episode)"
 				echo "Newer Than Last Episode in Store, Download..."
-			
-				case $download_flag in
-					1)
-					nl
-					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d
-					nl
-					;;
-					2)
-					nl
-					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
-					nl
-					;;
-					3)
-					nl
-					./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
-					nl
-					;;
-				esac
+				
+				for (( download_episode = $store_episode+1; download_episode <= $last_episode; download_episode++ )); do
+					case $download_flag in
+						1)
+						nl
+						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d
+						nl
+						;;
+						2)
+						nl
+						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD
+						nl
+						;;
+						3)
+						nl
+						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD
+						nl
+						;;
+					esac
+				done
 			else
 				printm "Last Aired Episode" "$last_episode < Store ($store_episode)"
 				echo "error: Lower Than Episode in Store"
@@ -227,23 +333,25 @@ function rundownload
 		printm "Last Aired Episode" "$last_episode <> Store ($store_episode)" 
 		echo "Newer Than Last Season in Store, Download..."
 
-		case $download_flag in
-			1)
-			nl
-			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d
-			nl
-			;;
-			2)
-			nl
-			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r SD
-			nl
-			;;
-			3)
-			nl
-			./kafind.sh -t "$my_clean_string" -s $last_season -e $last_episode -d -r HD
-			nl
-			;;
-		esac
+		for (( download_episode = 1; download_episode <= $last_episode; download_episode++ )); do
+			case $download_flag in
+				1)
+				nl
+				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d
+				nl
+				;;
+				2)
+				nl
+				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD
+				nl
+				;;
+				3)
+				nl
+				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD
+				nl
+				;;
+			esac
+		done
 	fi
 	
 	if (( "$last_season" < "$store_season" )); then
@@ -252,26 +360,30 @@ function rundownload
 	fi
 }
 
-download_flag=0
 download_quality=
-new_flag=0
+download_flag=0
+new_flag=false
+upcomming_flag=false
+force_update=false
 SERACH=
 FILENAME=
 
-while getopts “nd:hs:l:” opt_val
+while getopts “hfnud:s:l:” opt_val
 do
 	case $opt_val in
 		h) usage; exit 2;;
 		d) download_quality=$OPTARG; download_flag=1;;
 		s) SERACH=$OPTARG;;
 		l) FILENAME=$OPTARG;;
-		n) new_flag=1;;
+		n) new_flag=true;;
+		u) upcomming_flag=true;;
+		f) force_update=true;;
 		\?) usage; exit 3;;
 		*) usage; exit 3;;
 	esac
 done
 
-if [[ $download_flag == 1 ]]; then
+if (( $download_flag == 1)); then
 	download_quality=$(echo "$download_quality" | tr "[:lower:]" "[:upper:]")
 	if [ $download_quality == "SD" ]; then
 		download_flag=2
@@ -283,7 +395,7 @@ if [[ $download_flag == 1 ]]; then
 fi
 
 if ! [[ -z $SERACH ]]; then
-	if [[ $new_flag == 1 ]]; then
+	if $new_flag; then
 		serach
 		disp_new
 	else
@@ -295,6 +407,10 @@ if ! [[ -z $SERACH ]]; then
 		rundownload
 	fi
 	exit 0
+fi
+
+if $upcomming_flag && [ -z $FILENAME ]; then
+	FILENAME="$installpath/$indexfiles/showlist.cfg"
 fi
 
 if ! [ -z $FILENAME ]; then

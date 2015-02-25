@@ -40,6 +40,16 @@ function nl {
 	printf '\n'
 }
 
+function printc {
+	if [[ $TERM == "dumb" ]]; then		# width of the terminal
+		w=$(tput -Txterm cols)
+	else
+		w=$(tput cols)
+	fi
+	l=${#1}								# length of the string
+	printf "%"$((l+(w-l)/2))"s\n" "$1"	# print string padded to proper width (%Ws)
+}
+
 function printdl {
 	if [[ $TERM == "dumb" ]]; then
 		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' =

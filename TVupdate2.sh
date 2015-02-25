@@ -62,7 +62,7 @@ printm_WIDTH=34
 	printl
 	printm "Delete Empty Folders" "$(date)"
 	printl
-	~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload
+	~/Documents/Scripts/MoveShow/delEmpty.sh ~/Documents/TorrentDownload 15
 
 	### Copy some key log-files to my Dropbox ###
 	cp "$logpath/TV.log" ~/Dropbox/logs/TV.log

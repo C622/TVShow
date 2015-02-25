@@ -12,3 +12,8 @@ http://kickass.so/usearch/american%20idol%20category:highres-movies/
 
 
 https://eztv.ch/shows/9/american-idol/
+
+
+
+Date format:
+date "+%d/%-m %Y"

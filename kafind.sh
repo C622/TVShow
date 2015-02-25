@@ -31,8 +31,9 @@ OPTIONS:
    -p   Will print a dump of all the information returned from your search.
 
    -h   Show information about the highest hit.
+   -n   Select number from list.
    -r   Resolution, HD or SD.
-   -d   Automatic start download of the highest hit, using BTC.
+   -d   Download your selecting highest hit or the selected number using BTC.
    
    Default with no option -h, -p or -d. Will give you a list of hits, only showing title.
 		
@@ -40,7 +41,7 @@ EOF
 }
 
 function getlist {
-	curl -L --compressed -s "http://kickass.so/usearch/$search_string/?rss=1&field=seeders&sorder=desc" | grep -E "<title>|<torrent:magnetURI>|<torrent:seeds>|<torrent:peers>|<pubDate>|<torrent:contentLength>" | grep -v "Torrents by keyword" | sed -e 's/<!\[CDATA\[//' -e 's/\]\]>//' -e 's/<[^>]*>//g' -e 's/^ *//' > $TEMPFILE
+	curl -L --compressed -s "http://kickass.to/usearch/$search_string/?rss=1&field=seeders&sorder=desc" | grep -E "<title>|<torrent:magnetURI>|<torrent:seeds>|<torrent:peers>|<pubDate>|<torrent:contentLength>" | grep -v "Torrents by keyword" | sed -e 's/<!\[CDATA\[//' -e 's/\]\]>//' -e 's/<[^>]*>//g' -e 's/^ *//' > $TEMPFILE
 }
 
 function ifhigher {
@@ -276,6 +277,13 @@ else
 	search_string=$(echo "$search_title $search_season$search_episode" | sed 's/ /\%20/g')
 fi
 
+
+if $select_download; then
+	if [ $select_option != 4 ] && [ $select_option != 5 ]; then
+		echo "Download selected without -n or -h option"
+		exit 8
+	fi
+fi
 
 case $select_option in
 	1)
