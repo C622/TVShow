@@ -2,7 +2,7 @@
 
 TEMPFILE=$(mktemp -t 2up)
 
-./top100.sh $1 > $TEMPFILE
+./top100.sh -c $1 > $TEMPFILE
 div=$(cat ./devider.txt)
 
 echo $div

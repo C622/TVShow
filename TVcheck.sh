@@ -82,10 +82,8 @@ else
 		exec 1>/dev/null 2>&1	
 	fi
 	printm "TVShows.cfg" "Changed"
-	./showupdate.sh
-	./showindex.sh $indexfiles/showlistSD.cfg
-	./showindex.sh $indexfiles/showlistHD.cfg
-	./showindex.sh $indexfiles/showlistNO.cfg
+	./getshowcfg.sh -l
+	./getshowcfg.sh -u
 	large_update=1
 fi
 
@@ -117,8 +115,7 @@ if [ -f "TVcheck.ini" ] && [ "$large_update" == 0 ]; then
 				
 		if [[ "$item" == "$name_in_conf" ]]; then
 			printm "$item" "$item.cfg"
-			./findshow.sh "$item" > "$indexfiles/$item.cfg"
-			./lastepisode.sh "$item" >> "$indexfiles/$item.cfg"
+			./getshowcfg.sh -s "$item" > "$indexfiles/$item.cfg"
 		else
 			printm "$item" "*** No Match ***"
 		fi	

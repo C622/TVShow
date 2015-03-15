@@ -37,6 +37,9 @@ season=$2
 showname=$3
 high_season=$4
 high_episode=$5
+downloadfrompb_flag=$6
+show_quality=$7
+num_season_paths=$8
 match=0
 
 ## If no path given -----> Current path will be used
@@ -69,17 +72,29 @@ fi
 function find_gap ()
 {
 	IFS=$'\r\n'
-	list=($(ls "$dirpath" | grep -E '([sS][0-9][0-9][eE][0-9][0-9]|[0-9]x[0-9][0-9]|[0-9][0-9]x[0-9][0-9])' | grep -E '(.mkv$|.avi$|.mpg$|.mpeg$|.wmv$|.mov$|.m4v$|.mp4$|.3gp$)' | sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*[eE]\([0-9][0-9]\).*/\1#\2/' | tr '#' '\n' | sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*/\1/' | sed 's/^.*[0-9][0-9]x\([0-9][0-9]\).*$/\1/' | sed 's/^.*[0-9]x\([0-9][0-9]\).*$/\1/' | sort | bc))
+	list=($(ls "$dirpath" | grep -E '([sS][0-9][0-9][eE][0-9][0-9]|[0-9]x[0-9][0-9]|[0-9][0-9]x[0-9][0-9])' | grep -iE '(.mkv$|.avi$|.mpg$|.mpeg$|.wmv$|.mov$|.m4v$|.mp4$|.3gp$)' | sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*[eE]\([0-9][0-9]\).*/\1#\2/' | tr '#' '\n' | sed 's/^.*[sS][0-9][0-9][eE]\([0-9][0-9]\).*/\1/' | sed 's/^.*[0-9][0-9]x\([0-9][0-9]\).*$/\1/' | sed 's/^.*[0-9]x\([0-9][0-9]\).*$/\1/' | sort | bc))
 
 	size=${#list[@]}
-
+	
 	if [[ $size == 0 ]]; then
-		printm "Path" "$dirpath"
-		printm "Error" "No episodes found in folder"
-		exit 1
+		printf "\033[0;31m[ Error: No episodes found in folder ]\033[00m\n"
+		nl
+		printn "   Path" "$dirpath"
+		# if ! (( $high_season <= $season )); then
+		# 	nl
+		# fi
+		
+		size=1
+		list[0]=0
+		match=1
+#		high_season=$season
 	fi
 
 	first=${list[0]}
+
+#	if [ -z "$first" ]; then
+#		first=1
+#	fi
 
 	last=$(./episodenames.sh $showname $season | tail -n2 | head -n1 | sed -E 's/Episode ([0-9]{1,2}).*$/\1/' | bc)		
 	
@@ -87,31 +102,42 @@ function find_gap ()
 		last=${list[$size-1]}
 	fi
 
-	 # printm "showname" "$showname"
-	 # printm "season" "$season"
-	 # printm "last" "$last"
-
 	if [[ $season == $high_season ]]; then
 		if (( "$last" > "$high_episode" )); then
 			last=$high_episode
 		fi
 	fi
-		
-	for i in $(seq 1 $first); do
-		found=0
-		for j in $(seq 0 $[size-1]); do
-			if [ ${list[$j]} == $i ]; then
-				found=1
+	
+	if ! [ ${list[0]} == 0 ]; then
+		for i in $(seq 1 $first); do
+			found=0
+			for j in $(seq 0 $[size-1]); do
+				if [ ${list[$j]} == $i ]; then
+					found=1
+				fi
+			done
+			if [ $found == 0 ]; then
+				if [ $match == 0 ]; then
+					printf "\033[0;31m[ Missing ]\033[00m\n"
+					nl
+					printn "   Path" "$dirpath"
+				fi
+				printn "   * Missing Episode" "Season $season Episode $i"
+				if $downloadfrompb_flag; then
+					findstring="$showname S"
+					if (( season <= 9 )); then findstring+="0$season"; else findstring+="$season"; fi
+					if (( i <= 9 )); then findstring+="E0$i"; else findstring+="E$i"; fi
+					if [ $show_quality == 'SD' ]; then
+						./findtorrent.sh -t "$findstring" -c 205 -n 1 -d
+					fi
+					if [ $show_quality == 'HD' ]; then
+						./findtorrent.sh -t "$findstring" -c 208 -n 1 -d
+					fi
+				fi
+				match=1
 			fi
 		done
-		if [ $found == 0 ]; then
-			if [ $match == 0 ]; then
-				printm "Path" "$dirpath"
-			fi
-			printm "* Missing Episode" "$showname S$season E$i"
-			match=1
-		fi
-	done
+	fi
 
 	if ! [[ "$first" == "$last" ]]; then
 		for i in $(seq $[first+1] $last); do
@@ -123,17 +149,35 @@ function find_gap ()
 			done
 			if [ $found == 0 ]; then
 				if [ $match == 0 ]; then
-					printm "Path" "$dirpath"
+					printf "\033[0;31m[ Missing ]\033[00m\n"
+					nl
+					printn "   Path" "$dirpath"
 				fi
-				printm "* Missing Episode" "$showname S$season E$i"
+				printn "   * Missing Episode" "Season $season Episode $i"
+				if $downloadfrompb_flag; then
+					findstring="$showname S"
+					if (( season <= 9 )); then findstring+="0$season"; else findstring+="$season"; fi
+					if (( i <= 9 )); then findstring+="E0$i"; else findstring+="E$i"; fi
+					if [ $show_quality == 'SD' ]; then
+						./findtorrent.sh -t "$findstring" -c 205 -n 1 -d
+					fi
+					if [ $show_quality == 'HD' ]; then
+						./findtorrent.sh -t "$findstring" -c 208 -n 1 -d
+					fi
+				fi
 				match=1
+				#if [ $i == $last ] && ! (( $high_season <= $season )); then
+				if [ $i == $last ] && (( $num_season_paths > $season )); then
+					nl
+				fi
+				
 			fi
 		done
 	fi
 	
-	# if [ $match == 1 ]; then
-	# 	echo
-	# fi
+	if ! [ $size == 0 ] && [ $match == 0 ]; then
+		printf "\033[1;32m[ OK ]\033[00m\n"
+	fi
 }
 
 find_gap

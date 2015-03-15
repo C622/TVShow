@@ -52,12 +52,26 @@ OPTIONS:
    -i    # Update "Index" files (old style)
    -l    # Update "show quality index List" files
    -s      Provide "Search" string - Options marked with *, are depended on this option
+   -t    * Get Show information from TV.com
+   -n      No update - Will get cached information
    -u    # Update index files with all information (new style)
    
 Options marked with # can only be called alone.
 
 EOF
 }
+
+function cleanup_files
+{
+	if [ -f $TEMPFILE ]; then
+		rm $TEMPFILE
+	fi
+
+	if [ -f $TEMPFILE_INFO ]; then
+		rm $TEMPFILE_INFO
+	fi
+}
+trap cleanup_files EXIT
 
 ## Function 'search', main function for search
 function search
@@ -72,7 +86,6 @@ function search
 	## Size of the info-block for one show is the number after -iA, Global variable $SHOWINFO_BLOCKSIZE is used for this
 	showget=$(grep -iA $SHOWINFO_BLOCKSIZE "^name = \"$SEARCH" $installpath/$showlist)
 
-
 	## If there is no match at the start, try and find one somewhere in the show names
 	if (( $? )); then
 		showget=$(grep -iA $SHOWINFO_BLOCKSIZE "^name = .*$SEARCH" $installpath/$showlist | head -n $SHOWINFO_BLOCKSIZE)
@@ -83,8 +96,8 @@ function search
 	## If there is no match found, exit!
 	if [[ $showget == "" ]]
 	then
-		echo "No match!"
-		exit 1
+		echo "Error 51: No match!"
+		exit 51
 	fi
 
 	## Line by line ...
@@ -101,6 +114,11 @@ function search
 	IFS=$IFS_SAVE
 
 	. $TEMPFILE
+	
+	if $getTVcom_func; then
+		getTVcom
+	fi
+	
 }
 
 function show_search
@@ -112,16 +130,22 @@ function show_search
 
 function combi
 {
-	if $show_search_func; then
-		show_search
-	fi
+	if $no_update_func; then
+		if [ -f $indexfiles/"$show_name.cfg" ]; then
+			cat $indexfiles/"$show_name.cfg"
+		fi
+	else
+		if $show_search_func; then
+			show_search
+		fi
 
-	if $store_show_func; then
-		store_show
-	fi
+		if $store_show_func; then
+			store_show
+		fi
 	
-	if $store_lastepisode_func; then
-		store_lastepisode
+		if $store_lastepisode_func; then
+			store_lastepisode
+		fi
 	fi
 }
 
@@ -148,8 +172,27 @@ function updateall_file
 		fi
 		
 		search "$line"
-		printm "$show_name" "$show_name.cfg" 30
-		combi > $TEMPFILE_INFO
+		printm "$show_name" "$show_name.cfg"
+
+		update_day=`/bin/date -j "+%d"`
+		update_month=`/bin/date -j "+%-m"`
+		update_year=`/bin/date -j "+%Y"`
+		update_hours=`/bin/date -j "+%H"`
+		update_minutes=`/bin/date -j "+%M"`
+
+		{
+			combi
+			echo
+			echo "## TV.COM information ##"
+			getTVcom
+			echo
+			echo "## Update Stamp ##"
+			echo "update_day='$update_day'"
+			echo "update_month='$update_month'"
+			echo "update_year='$update_year'"
+			echo "update_hours='$update_hours'"
+			echo "update_minutes='$update_minutes'"
+		} > $TEMPFILE_INFO
 		cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
 		((total++))
 	done < $indexfiles/$1
@@ -190,10 +233,12 @@ function updateall
 	updateall_file showlistNO.cfg
 	((totalNO=total-totalSD-totalHD))
 	
-	printm "SD shows" "$totalSD" 30
-	printm "HD shows" "$totalHD" 30
-	printm "NO shows" "$totalNO" 30	
-	printm "Total" "$total" 30
+	printm "SD shows" "$totalSD"
+	printm "HD shows" "$totalHD"
+	printm "NO shows" "$totalNO"
+	printm "Total" "$total"
+	
+	stat -f "%Sm" $installpath/$showlist > TVshows_file.ini
 }
 
 function gen_index
@@ -203,6 +248,7 @@ function gen_index
 	showindex $indexfiles/showlistNO.cfg
 }
 
+## showindex.sh
 function showindex
 {
 	nl
@@ -220,6 +266,7 @@ function showindex
 	stat -f "%Sm" $installpath/$showlist > TVshows_file.ini
 }
 
+## showupdate.sh
 function gen_show_list
 {
 	nl
@@ -272,8 +319,12 @@ function gen_show_list
 	done < $showlist
 }
 
+## findshow.sh
 function store_show
 {
+	show_path_tmp=
+	show_path=
+	
 	while read pathname
 	do
 		show_path_tmp=`find $pathname -name "$show_name" -print -quit`
@@ -289,8 +340,13 @@ function store_show
 	fi
 }
 
+## lastepisode.sh
 function store_lastepisode
 {
+	seasonnum=
+	seasonpath=
+	episodenum=
+	
 	if [ -f "$installpath/$indexfiles/$show_name.cfg" ]; then
 		. $installpath/$indexfiles/"$show_name".cfg
 	else
@@ -330,6 +386,11 @@ function store_lastepisode
 	fi
 }
 
+function getTVcom
+{
+	$installpath/showgetinfo.pl $show_url
+}
+
 function call_function
 {
 	## ==================
@@ -346,7 +407,7 @@ function call_function
 	fi
 	
 	## list of alone options/functions
-	for i in $getall_func $need_search ; do
+	for i in $getall_func $need_search; do
 		if $i; then
 			alone_func=$((alone_func + 1))
 		fi
@@ -385,6 +446,13 @@ function call_function
 		exit 13
 	fi
 	
+	if (( $full_alone_func == 0 )) && (( $alone_func == 0 )); then
+		echo "Error 14: No option selected that will give output!"
+		usage
+		exit 14
+	fi
+		
+	
 
 	## ========================
 	##  CALL FUNCTIONS SEGMENT
@@ -393,6 +461,11 @@ function call_function
 	## Now that the options are validated, we can call the functions
 
 	## If no combi option, default is to show all combi options
+	
+	if $need_search; then
+		search "$SEARCH"
+	fi
+	
 	if ! $comp_func; then
 		show_search_func=true
 		store_show_func=true
@@ -406,7 +479,7 @@ function call_function
 	if $gen_index_func; then
 		gen_index
 	fi
-	
+		
 	if $gen_show_list_func; then
 		gen_show_list
 	fi
@@ -415,9 +488,9 @@ function call_function
 		getall
 	fi
 	
-	if $need_search; then
+	if $need_search && ! $getTVcom_func; then
 		combi
-	fi	
+	fi
 }
 
 need_search=false
@@ -428,12 +501,14 @@ getall_func=false
 gen_show_list_func=false
 gen_index_func=false
 updateall_func=false
+no_update_func=false
+getTVcom_func=false
 
-while getopts “hailefcus:” opt_val
+while getopts “hailefcunts:” opt_val
 do
 	case $opt_val in
 		h) usage; exit 0;;
-		s) SEARCH=$OPTARG; need_search=true; search $SEARCH;;
+		s) SEARCH=$OPTARG; need_search=true;;
 		i) gen_index_func=true;;
 		l) gen_show_list_func=true;;
 		f) store_show_func=true;;
@@ -441,6 +516,8 @@ do
 		c) show_search_func=true;;
 		a) getall_func=true;;
 		u) updateall_func=true;;
+		n) no_update_func=true;;
+		t) getTVcom_func=true;;
 		*) usage; exit 2;;
 	esac
 done
@@ -448,15 +525,4 @@ done
 call_function
 
 ## Clean-up
-if [ -f $TEMPFILE ]; then
-	rm $TEMPFILE
-fi
-
-if [ -f $TEMPFILE_INFO ]; then
-	rm $TEMPFILE_INFO
-fi
-
-if [[ -z $1 ]]; then
-	usage
-	exit 1
-fi
+cleanup_files

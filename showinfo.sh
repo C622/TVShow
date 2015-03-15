@@ -30,8 +30,11 @@ cd $script_path
 . ./TVShow.cfg
 
 logfile="$installpath/$logpath/showinfo.log"
-tmpfile="/tmp/showgetinfo2showinfo.tmp"
+tmpfile=$(mktemp -t showinfo_tmp)
+TEMPFILE_SEARCH=$(mktemp -t showinfo_search)
+TEMPFILE_NOW=$(mktemp -t showinfo_now)
 re='^[0-9]+$'
+update_time_of_day='03:00.00'
 
 printm_WIDTH=34
 . $installpath/strings.func
@@ -63,37 +66,52 @@ OPTIONS:
 EOF
 }
 
+function cleanup_files
+{
+	if [ -f $TEMPFILE_SEARCH ]; then
+		rm $TEMPFILE_SEARCH
+	fi
+	if [ -f $TEMPFILE_NOW ]; then
+		rm $TEMPFILE_NOW
+	fi
+	if [ -f $tmpfile ]; then
+		rm $tmpfile
+	fi	
+}
+trap cleanup_files EXIT
 
 ## Function 'serach', main function for serach
 function serach
 {
-## Try and match the serach, at the start of of the show names
-showget=$(grep -iA 1 "^name = \"$SERACH" $installpath/$showlist)
+	./getshowcfg.sh -n -s "$SERACH" > $TEMPFILE_SEARCH
 
-## If there is no match at the start, try and find one somewhere in the show names
-if (( $? )); then
-	showget=$(grep -iA 1 "^name = .*$SERACH" $installpath/$showlist | head -n2)
-else
-	showget=$(head -n2 <<< "$showget")
-fi
+	if (( $? == 51 )); then
+	 	echo "No match!"
+	 	exit 1
+	fi
 
-## If there is no match found, exit!
-if [[ $showget == "" ]]
-then
-	echo "No match!"
-	exit 1
-fi
+	zero_out_vals
 
-## Split the result in to URL and NAME values
-showget_url=$(echo "$showget" | sed -n -e 's/url = "\(.*\)"/\1/p')
-showget_name=$(echo "$showget" | sed -n -e 's/name = "\(.*\)"/\1/p')
+	. $TEMPFILE_SEARCH
+		
+	showget_name=$show_name
+	showget_url=$show_url
+	
+	. "$script_path/$indexfiles/$show_name.cfg"
+	date_split
 
+	## Set temp-file to have timestamp that is 2 hour old
+	touch -A '-020000' $TEMPFILE_NOW
+	
+	## If the cfg file is older than the temp-file, then update the info in the cfg file
+	if [ "$script_path/$indexfiles/$show_name.cfg" -ot $TEMPFILE_NOW ]; then
+		$installpath/showgetinfo.pl $showget_url > $tmpfile
+		. $tmpfile
 
-$installpath/showgetinfo.pl $showget_url > $tmpfile
-
-. $tmpfile
-rm $tmpfile
-
+		write_index_file
+	fi
+	
+	cleanup_files
 }
 
 function clean_string
@@ -110,20 +128,27 @@ function clean_string
 	showcfg=$(sed 's/ *$//' <<< $showcfg)
 
 	my_clean_string=$showcfg
-	showcfg=$(find $installpath/$indexfiles/* -name "$showcfg.cfg")
+#	showcfg=$(find $installpath/$indexfiles/* -name "$showcfg.cfg")
+	showcfg="$script_path/$indexfiles/$showcfg.cfg"
 }
 
 function disp_new
 {
-	echo "Season $last_season"
-	echo "Episode $last_episode"
+	if [[ $state =~ ^Ended.*$ ]]; then
+		mobile_url=$(echo "$showget_url" | sed 's/\.com/\.com\/m/')
+		mobile_url+="episodes/"
+		curl -s $mobile_url | grep "section_header" | sed 's/.*Season \(.*\) <.*count\">(\(.*\)).*/Season \1#Episode \2/' | head -n 1 | tr '#' '\n'
+	else
+		echo "Season $last_season"
+		echo "Episode $last_episode"
+	fi
 }
 
 function disp_serach
 {
 	echo "Looking For : $SERACH"
 	echo "URL : $showget_url"
-	printdl
+	printl
 
 	clean_string
 	
@@ -137,19 +162,28 @@ function disp_serach
 		printm "Titel of Previous Episode" "$last_titel"
 		printm "Season of Previous Episode" "$last_season"
 		printm "Previous Episode" "$last_episode"
-		nl
-		printm "Next Episode Will Air" "$next"
-		printm "Titel of Next Episode" "$next_titel"
-		printm "Seaon of Next Episode" "$next_season"
-		printm "Next Episode" "$next_episode"
+		if ! [ -z "$next" ] && ! [ -z "$next_titel" ] && ! [ -z "$next_season" ] && ! [ -z "$next_episode" ]; then
+			nl
+			printm "Next Episode Will Air" "$next"
+			printm "Titel of Next Episode" "$next_titel"
+			printm "Seaon of Next Episode" "$next_season"
+			printm "Next Episode" "$next_episode"
+		fi
 	fi
-	nl
-
-	. "$showcfg"
+	printl
 
 	printm "Show Stored" "$store_path"
 	printm "Season of Last Episode in Store" "$store_season"
 	printm "Last Episode in Store" "$store_episode"
+
+	printl
+	
+	if ! [ -z $update_date ]; then
+		print_update=$(date -jr $update_date "+%d/%-m %Y %H:%M:%S")
+	else
+		print_update=
+	fi
+	printm "Update Data" "$print_update [ $(stat -f "%Sm" "$showcfg") ]"
 }
 
 function runfile
@@ -202,9 +236,9 @@ function runfile
 			store_episode=
 			last_season=
 			last_episode=
-		
+
 			serach
-				
+
 			if $upcomming_flag; then
 				
 				if [[ $next =~ ^Tonight.*$ ]]; then
@@ -273,9 +307,9 @@ function rundownload
 
 	. "$showcfg"
 
-	echo ""
+	nl
 	printm "Show Name" "$show"
-
+	
 	if ! [[ $last_season =~ $re ]] ; then
 	   echo "error: last_season Not a number"
 	   if ! [ -z $FILENAME ]; then continue; else exit; fi
@@ -304,21 +338,9 @@ function rundownload
 				
 				for (( download_episode = $store_episode+1; download_episode <= $last_episode; download_episode++ )); do
 					case $download_flag in
-						1)
-						nl
-						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d
-						nl
-						;;
-						2)
-						nl
-						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD
-						nl
-						;;
-						3)
-						nl
-						./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD
-						nl
-						;;
+						1) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d; nl;;
+						2) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD; nl;;
+						3) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD; nl;;
 					esac
 				done
 			else
@@ -335,21 +357,9 @@ function rundownload
 
 		for (( download_episode = 1; download_episode <= $last_episode; download_episode++ )); do
 			case $download_flag in
-				1)
-				nl
-				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d
-				nl
-				;;
-				2)
-				nl
-				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD
-				nl
-				;;
-				3)
-				nl
-				./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD
-				nl
-				;;
+				1) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d; nl;;
+				2) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r SD; nl;;
+				3) nl; ./kafind.sh -t "$my_clean_string" -s $last_season -e $download_episode -h -d -r HD; nl;;
 			esac
 		done
 	fi
@@ -358,6 +368,96 @@ function rundownload
 		printm "Season of Last Aired Episode" "$last_season < Store ($store_season)"
 		echo "error: Lower Than Season in Store"
 	fi
+}
+
+function date_split {
+	now_date=`/bin/date "+%s"`
+
+	if [[ $last =~ ^Tonight.*$ ]]; then
+		last_date=$now_date
+	elif ! [ -z "$last" ]; then
+		last_date=$(date -j -f "%d/%m %Y %H:%M.%S" "$last $update_time_of_day" "+%s")
+	else
+		last_date=
+	fi
+
+	if [[ $next =~ ^Tonight.*$ ]]; then
+		next_date=$now_date
+	elif ! [ -z "$next" ]; then
+		next_date=$(date -j -f "%d/%m %Y %H:%M.%S" "$next $update_time_of_day" "+%s")
+	else
+		next_date=
+	fi
+	
+	# echo "update_date='$update_date'"
+	# echo "last_date='$last_date'"
+	# echo "next_date='$next_date'"
+	# echo "now_date='$now_date'"
+	
+}
+
+function write_index_file {
+	update_date=`/bin/date "+%s"`
+	{
+		echo "show_name='$show_name'"
+		echo "show_url='$show_url'"
+		echo "show_eztv='$show_eztv'"
+		echo "show_quality='$show_quality'"
+		echo "store_path='$store_path'"
+		echo "store_season='$store_season'"
+		echo "store_episode='$store_episode'"
+		echo
+
+		echo "## TV.COM information ##"
+		echo "show=\"$show\""
+		echo "state=\"$state\""
+		echo "last=\"$last\""
+		echo "last_titel=\"$last_titel\""
+		echo "last_season=\"$last_season\""
+		echo "last_episode=\"$last_episode\""
+		echo "next=\"$next\""
+		echo "next_titel=\"$next_titel\""
+		echo "next_season=\"$next_season\""
+		echo "next_episode=\"$next_episode\""
+		echo
+
+		echo "## Update Stamp ##"
+		echo "update_date='$update_date'"
+	} > "$script_path/$indexfiles/$show_name.cfg"
+}
+
+function zero_out_vals {
+	zero_cfg_vals
+	zero_cfg_vals
+	
+	update_date=
+	last_date=
+	next_date=
+	now_date=
+}
+
+function zero_cfg_vals {
+	show_name=
+	show_url=
+	show_eztv=
+	show_quality=
+	store_path=
+	store_season=
+	store_episode=
+}
+
+function zero_tv_vals {
+	tv_info=
+	show=
+	state=
+	last=
+	last_titel=
+	last_season=
+	last_episode=
+	next=
+	next_titel=
+	next_season=
+	next_episode=
 }
 
 download_quality=

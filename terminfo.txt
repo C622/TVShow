@@ -1,6 +1,6 @@
-                              TOMORROW - 16/3 2015
+/usr/bin:/bin
+/Users/chris/Documents/Scripts/TVShow
 ————————————————————————————————————————————————————————————————————————————————
-The Following                  Exposed                               S03 / E03
-Top Gear                       Episode 8                             S22 / E08
+dumb
+Ver. 4.2
 ————————————————————————————————————————————————————————————————————————————————
-Updated: Søn 15 Mar 2015 07:00:07 CET  * Downloaded and in Store

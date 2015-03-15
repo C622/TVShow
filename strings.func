@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LANG="da_DK.UTF-8"
+
 ##  "function printm" takes two argument strings.
 ##  Value $printm_WIDTH will sets the width of the output.
 ##  Default value for printm_WIDTH is 25.
@@ -36,6 +38,34 @@ function printm {
 	printm_WIDTH=$tmp_printm_WIDTH
 }
 
+function printn {
+	PROC_NAME_FUNC=$1
+	STRING_FUNC=$2
+	tmp_printm_WIDTH=$printm_WIDTH
+	
+	if ! [ -z $3 ]; then
+		printm_WIDTH=$3
+	fi
+	
+	##  Values used with "function printm"
+	if [ -z $printm_WIDTH ]; then
+		printm_WIDTH=25
+	fi
+	width_FUNC=$((printm_WIDTH - 2))
+	line_FUNC=$(printf "%${width_FUNC}s")
+	
+	if (( ${#PROC_NAME_FUNC} > $width_FUNC )); then
+		PROC_NAME_FUNC=$(printf "%.$((width_FUNC - 1))s" "$PROC_NAME_FUNC")
+	fi
+
+	printf '%s' "$PROC_NAME_FUNC" " "
+	printf '%0.*s' $((width_FUNC - ${#PROC_NAME_FUNC})) "$line_FUNC"
+	printf '%s' " : "
+	printf '%s\n' "$STRING_FUNC"
+
+	printm_WIDTH=$tmp_printm_WIDTH
+}
+
 function nl {
 	printf '\n'
 }
@@ -52,17 +82,19 @@ function printc {
 
 function printdl {
 	if [[ $TERM == "dumb" ]]; then
-		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' =
+		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' ═
 	else
-		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' =
+		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' ═
 	fi
 }
 
 function printl {
-	if [[ $TERM == "dumb" ]]; then
-		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' -
+	if ! [ -z $1 ]; then
+		printf '%*s\n' "${COLUMNS:-$1}" '' | tr ' ' —
+	elif [[ $TERM == "dumb" ]]; then
+		printf '%*s\n' "${COLUMNS:-$(tput -Txterm cols)}" '' | tr ' ' —
 	else
-		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+		printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' —
 	fi
 }
 

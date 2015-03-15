@@ -28,8 +28,8 @@ then
   echo "TVShows.cfg has not changed... No updating." >> $TVlog
 else
   echo "TVShows.cfg has been changed... Running update:" >> $TVlog
-  ./showupdate.sh >> $TVlog
-  ./showindex.sh $indexfiles/showlist.cfg >> $TVlog
+  ./getshowcfg.sh -l >> $TVlog
+  ./getshowcfg.sh -u >> $TVlog
 fi
 
 ## Run 2up script with paremeters for HD (208 on TPB) and SD (205 on TPB)
