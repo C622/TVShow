@@ -32,8 +32,8 @@ cd $script_path
 printm_WIDTH=34
 . $installpath/strings.func
 
-large_update=0
-silent_index=0
+not_large_update=true
+silent_index=false
 
 ## Fuction 'usage', displays usage information
 function usage {
@@ -53,13 +53,13 @@ while getopts “hsi” opt_val; do
         case $opt_val in
                 h) usage; exit 0;;
                 s) exec 1>/dev/null 2>&1;;
-				i) silent_index=1;;
+				i) silent_index=true;;
                 *) usage; exit 1;;
         esac
 done
 
 
-if (( $silent_index )) ; then
+if $silent_index; then
 	exec 6>&1
 	exec 7>&2
 	exec 1>/dev/null 2>&1
@@ -73,7 +73,7 @@ VarLast=$(cat TVshows_file.ini)
 if [[ $VarMod == $VarLast ]]; then
 	printm "TVShows.cfg" "No change"
 else
-	if (( $silent_index )) ; then
+	if $silent_index; then
 		exec 1>&6 6>&-
 		exec 2>&7 7>&-
 		printf "indexing..."
@@ -83,12 +83,12 @@ else
 	fi
 	printm "TVShows.cfg" "Changed"
 	./getshowcfg.sh -l
-	./getshowcfg.sh -u
-	large_update=1
+	./getshowcfg.sh -u -n -a
+	not_large_update=false
 fi
 
-if [ -f "TVcheck.ini" ] && [ "$large_update" == 0 ]; then
-	if (( $silent_index )) ; then
+if [ -f "TVcheck.ini" ] && $not_large_update; then
+	if $silent_index; then
 		exec 1>&6 6>&-
 		exec 2>&7 7>&-
 		printf "indexing..."
@@ -126,12 +126,12 @@ if [ -f "TVcheck.ini" ] && [ "$large_update" == 0 ]; then
 	printm "Remove" "TVcheck.ini"
 	rm $installpath/TVcheck.ini
 else
-	if [ "$large_update" == 0 ]; then
+	if $not_large_update; then
 		printm "TVcheck.ini" "Not Pressent"
 	fi
 fi
 
-if (( $silent_index )) ; then
+if $silent_index; then
 	exec 1>&6 6>&-
 	exec 2>&7 7>&-
 	## Delete before courser and return to start of line

@@ -23,6 +23,58 @@ unhide_cursor() {
 }
 trap unhide_cursor EXIT
 
+function color_black {
+	printf "\033[0;30m"
+}
+function color_lblack {
+	printf "\033[1;30m"
+}
+function color_red {
+	printf "\033[0;31m"
+}
+function color_lred {
+	printf "\033[1;31m"
+}
+function color_green {
+	printf "\033[0;32m"
+}
+function color_lgreen {
+	printf "\033[1;32m"
+}
+function color_yellow {
+	printf "\033[0;33m"
+}
+function color_lyellow {
+	printf "\033[1;33m"
+}
+function color_blue {
+	printf "\033[0;34m"
+}
+function color_lblue {
+	printf "\033[1;34m"
+}
+function color_magenta {
+	printf "\033[0;35m"
+}
+function color_lmagenta {
+	printf "\033[1;35m"
+}
+function color_cyan {
+	printf "\033[0;36m"
+}
+function color_lcyan {
+	printf "\033[1;36m"
+}
+function color_white {
+	printf "\033[0;37m"
+}
+function color_lwhite {
+	printf "\033[1;37m"
+}
+function color_reset {
+	printf "\033[00m"
+}
+
 getlist()
 {
 btc list | \
@@ -59,8 +111,27 @@ while read -r Line1; do
 		uclear
 	fi
 	
-	printf "Name : $name \033[K \n" >> $TEMPFILE3
-	printf "#$order  //  State : $state  //  Progress : $progress %%  //  Size : $(($size >> 20)) MB  //  Up : $(($upload_rate >> 10)) KBit/s  //  Down : $(($download_rate >> 10)) KBit/s\033[K \n \033[K \n" >> $TEMPFILE3
+	{
+		color_lblue
+		printf "Name: "
+		color_lgreen
+		printf "$name \033[K \n"
+		color_lwhite
+		printf "#$order "
+		color_white
+		# printf "// "
+		printf "State: $state "
+		printf "// "
+		printf "Progress: $progress %% "
+		printf "// "
+		printf "Size: $(($size >> 20)) MB "
+		printf "// "
+		printf "Up: $(($upload_rate >> 10)) KBit/s "
+		printf "// "
+		printf "Down: $(($download_rate >> 10)) KBit/s\033[K \n"
+		color_reset
+	} >> $TEMPFILE3
+	
 done < $TEMPFILE1
 
 if [ -f $TEMPFILE3 ]

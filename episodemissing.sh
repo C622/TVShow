@@ -81,7 +81,7 @@ function gap_one {
 	season_paths=$(ls -1 $showpath | grep "Season " | sed 's/Season //' | sort -n | sed 's/^/Season /')
 	
 	## Count how many Season folders
-	num_season_paths=$(echo "$season_paths" | wc -l)
+	num_season_paths=$(echo "$season_paths" | wc -l | bc)
 
 	## High mark
 	high_mark=$(showinfo -n -s "$showname")
@@ -119,12 +119,12 @@ function gap_all {
 	done
 }
 
-downloadfrompb_flag=false
+downloadfrompb_flag="false"
 
 while getopts “adhs:” opt_val; do
         case $opt_val in
                 a) gap_all; exit 0;;
-				d) downloadfrompb_flag=true;;
+				d) downloadfrompb_flag="true";;
                 h) usage; exit 0;;
                 s) SERACH=$OPTARG; gap_one; exit 0;;
                 *) usage; exit 1;;

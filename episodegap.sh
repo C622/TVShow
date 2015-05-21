@@ -68,7 +68,6 @@ if [ -z "$showname" ]; then
 	showname=`sed 's/^.*\/\(.*\)\/Season .*$/\1/' <<< $dirpath`
 fi
 
-
 function find_gap ()
 {
 	IFS=$'\r\n'
@@ -123,15 +122,15 @@ function find_gap ()
 					printn "   Path" "$dirpath"
 				fi
 				printn "   * Missing Episode" "Season $season Episode $i"
-				if $downloadfrompb_flag; then
+				if [[ "$downloadfrompb_flag" == "true" ]]; then
 					findstring="$showname S"
 					if (( season <= 9 )); then findstring+="0$season"; else findstring+="$season"; fi
 					if (( i <= 9 )); then findstring+="E0$i"; else findstring+="E$i"; fi
 					if [ $show_quality == 'SD' ]; then
-						./findtorrent.sh -t "$findstring" -c 205 -n 1 -d
+						./top100.sh -t "$findstring" -c 205 -d
 					fi
 					if [ $show_quality == 'HD' ]; then
-						./findtorrent.sh -t "$findstring" -c 208 -n 1 -d
+						./top100.sh -t "$findstring" -c 208 -d
 					fi
 				fi
 				match=1
@@ -154,19 +153,18 @@ function find_gap ()
 					printn "   Path" "$dirpath"
 				fi
 				printn "   * Missing Episode" "Season $season Episode $i"
-				if $downloadfrompb_flag; then
+				if [[ "$downloadfrompb_flag" == "true" ]]; then
 					findstring="$showname S"
 					if (( season <= 9 )); then findstring+="0$season"; else findstring+="$season"; fi
 					if (( i <= 9 )); then findstring+="E0$i"; else findstring+="E$i"; fi
 					if [ $show_quality == 'SD' ]; then
-						./findtorrent.sh -t "$findstring" -c 205 -n 1 -d
+						./top100.sh -t "$findstring" -c 205 -d
 					fi
 					if [ $show_quality == 'HD' ]; then
-						./findtorrent.sh -t "$findstring" -c 208 -n 1 -d
+						./top100.sh -t "$findstring" -c 208 -d
 					fi
 				fi
 				match=1
-				#if [ $i == $last ] && ! (( $high_season <= $season )); then
 				if [ $i == $last ] && (( $num_season_paths > $season )); then
 					nl
 				fi

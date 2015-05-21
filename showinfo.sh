@@ -32,9 +32,16 @@ cd $script_path
 logfile="$installpath/$logpath/showinfo.log"
 tmpfile=$(mktemp -t showinfo_tmp)
 TEMPFILE_SEARCH=$(mktemp -t showinfo_search)
-TEMPFILE_NOW=$(mktemp -t showinfo_now)
 re='^[0-9]+$'
 update_time_of_day='03:00.00'
+update_older_than=$(( 2*3600 ))
+
+## Time diffrence between local time zone, and LA/USA 
+time_diff_LA=$(( $(date '+%H' | bc) - $(TZ=America/Los_Angeles date '+%H' | bc) ))
+if (( time_diff_LA < 0 )); then
+	time_diff_LA=$(( time_diff_LA + 24 ))
+fi
+time_diff_LA=$(( time_diff_LA * 3600 ))
 
 printm_WIDTH=34
 . $installpath/strings.func
@@ -71,12 +78,14 @@ function cleanup_files
 	if [ -f $TEMPFILE_SEARCH ]; then
 		rm $TEMPFILE_SEARCH
 	fi
-	if [ -f $TEMPFILE_NOW ]; then
-		rm $TEMPFILE_NOW
-	fi
 	if [ -f $tmpfile ]; then
 		rm $tmpfile
-	fi	
+	fi
+
+	## UnHide cursor
+	if ! $auto_run; then
+		tput cnorm
+	fi
 }
 trap cleanup_files EXIT
 
@@ -99,19 +108,21 @@ function serach
 	
 	. "$script_path/$indexfiles/$show_name.cfg"
 	date_split
-
-	## Set temp-file to have timestamp that is 2 hour old
-	touch -A '-020000' $TEMPFILE_NOW
 	
-	## If the cfg file is older than the temp-file, then update the info in the cfg file
-	if [ "$script_path/$indexfiles/$show_name.cfg" -ot $TEMPFILE_NOW ]; then
+	if [ -z $update_date ]; then
+		update_date=0
+	fi	
+
+	time_diff=$(( $now_date-$update_date ))
+	next_diff=$(( $now_date-$next_date ))
+	
+	## If time diffrence is more than 2 hours (2 x 3600 sec), get new info from TV.com and write index file
+	if ( (( $time_diff >= $update_older_than )) && (( $now_date >= $next_date )) ) || ( (( $time_diff >= $update_older_than )) && [[ $last =~ ^Tonight.*$ ]] ) || (( $update_date == 0 )); then
 		$installpath/showgetinfo.pl $showget_url > $tmpfile
 		. $tmpfile
 
 		write_index_file
 	fi
-	
-	cleanup_files
 }
 
 function clean_string
@@ -132,20 +143,27 @@ function clean_string
 	showcfg="$script_path/$indexfiles/$showcfg.cfg"
 }
 
-function disp_new
-{
+function disp_new {
 	if [[ $state =~ ^Ended.*$ ]]; then
-		mobile_url=$(echo "$showget_url" | sed 's/\.com/\.com\/m/')
-		mobile_url+="episodes/"
-		curl -s $mobile_url | grep "section_header" | sed 's/.*Season \(.*\) <.*count\">(\(.*\)).*/Season \1#Episode \2/' | head -n 1 | tr '#' '\n'
+		## mobile_url=$(echo "$showget_url" | sed 's/\.com/\.com\/m/')
+		## mobile_url+="episodes/"
+		## curl -s $mobile_url | grep "section_header" | sed 's/.*Season \(.*\) <.*count\">(\(.*\)).*/Season \1#Episode \2/' | head -n 1 | tr '#' '\n'
+		curl -s $showget_url | grep -A6 'class="nums"' | sed 's/.*S \(.*\)&nbsp\;\:.*$/Season \1/' | sed 's/^.*episodeNumber">\(.*\)<.*$/Episode \1/' | grep -E '(Season|Episode)' | head -n 2
 	else
-		echo "Season $last_season"
-		echo "Episode $last_episode"
+		if [ -z $last_season ]; then
+			echo "Season 1"
+		else
+			echo "Season $last_season"
+		fi
+		if [ -z $last_episode ]; then
+			echo "Episode 1"
+		else
+			echo "Episode $last_episode"
+		fi
 	fi
 }
 
-function disp_serach
-{
+function disp_serach {
 	echo "Looking For : $SERACH"
 	echo "URL : $showget_url"
 	printl
@@ -179,21 +197,20 @@ function disp_serach
 	printl
 	
 	if ! [ -z $update_date ]; then
-		print_update=$(date -jr $update_date "+%d/%-m %Y %H:%M:%S")
+		print_update=$(date -jr $update_date "+%-d/%-m %Y %H:%M:%S")
 	else
 		print_update=
 	fi
-	printm "Update Data" "$print_update [ $(stat -f "%Sm" "$showcfg") ]"
+	printm "Data Updated" "$print_update"
 }
 
-function runfile
-{
+function runfile {
 	file_next_new_enough=false
 
 	if $upcomming_flag; then
-		date_tomorrow=`/bin/date -j -v+1d "+%d/%-m %Y"`
-		date_yesterday=`/bin/date -j -v-1d "+%d/%-m %Y"`
-		date_today=`/bin/date -j "+%d/%-m %Y"`
+		date_tomorrow=`/bin/date -j -v+1d "+%-d/%-m %Y"`
+		date_yesterday=`/bin/date -j -v-1d "+%-d/%-m %Y"`
+		date_today=`/bin/date -j "+%-d/%-m %Y"`
 		file_tomorrow="$installpath/$indexfiles/tomorrow.ini"
 		file_yesterday="$installpath/$indexfiles/yesterday.ini"
 		file_tonight="$installpath/$indexfiles/tonight.ini"
@@ -214,7 +231,6 @@ function runfile
 		fi
 		
 		if ! $file_next_new_enough; then
-			echo "Updating TVnext.ini..."
 			if [[ -f $file_tomorrow ]]; then
 				rm $file_tomorrow
 			fi
@@ -231,31 +247,39 @@ function runfile
 	fi
 	
 	if ! $file_next_new_enough; then
+		## Hide cursor
+		if ! $auto_run; then
+			tput civis
+		fi
+		
+		count_shows_in_file=$( cat "$FILENAME" | wc -l | bc )
+		count_in_file=1
+		
 		while read SERACH; do
-			store_season=
-			store_episode=
-			last_season=
-			last_episode=
 
 			serach
-
+			
 			if $upcomming_flag; then
-				
+				## Delete before courser and return to start of line - Used to delete next from next line
+				printf "\033[1K\r"
+				printf "Updating TVnext.ini [ $(( (count_in_file*100)/count_shows_in_file ))%% ] : $showget_name"
+				(( count_in_file++ ))
+
 				if [[ $next =~ ^Tonight.*$ ]]; then
 					printf "%-30.30s %-37.37s S%02d / E%02d\n" "$showget_name" "$next_titel" "$next_season" "$next_episode" >> $file_tonight
 				elif [[ $next =~ $date_tomorrow ]]; then
 					printf "%-30.30s %-37.37s S%02s / E%02d\n" "$showget_name" "$next_titel" "$next_season" "$next_episode" >> $file_tomorrow
 				fi
 		
-				if [[ $last =~ $date_yesterday ]]; then
-					showcfg=$(find $installpath/$indexfiles/* -name "$showget_name.cfg")
-					. "$showcfg"
+				if [[ $last =~ $date_yesterday ]] || [[ $last =~ ^Tonight.*$ ]]; then
+					. "$installpath/$indexfiles/$showget_name.cfg"
 					printf "%-30.30s %-37.37s S%02d / E%02d" "$showget_name" "$last_titel" "$last_season" "$last_episode" >> $file_yesterday
 					if (("$store_season" == "$last_season")) && (("$store_episode" == "$last_episode")); then
 						printf " *" >> $file_yesterday
 					fi
 					printf "\n" >> $file_yesterday
 				fi
+
 			elif (( $download_flag == 0 )); then
 				disp_serach
 				printl
@@ -266,6 +290,13 @@ function runfile
 		done < $FILENAME
 
 		if $upcomming_flag; then
+			## Delete before courser and return to start of line, final delete show titel
+			printf "\033[1K\r"
+			## UnHide cursor
+			if ! $auto_run; then
+				tput cnorm
+			fi
+			
 			{
 				if [[ -f $file_yesterday ]]; then
 					printc "YESTERDAY - $date_yesterday"
@@ -275,7 +306,7 @@ function runfile
 					nl
 				fi
 				if [[ -f $file_tonight ]]; then
-					printc "TONIGHT - $date_today"
+					printc "TODAY - $date_today"
 					printl
 					cat $file_tonight | sort
 					printl
@@ -301,8 +332,7 @@ function runfile
 	
 }
 
-function rundownload
-{
+function rundownload {
 	clean_string
 
 	. "$showcfg"
@@ -315,8 +345,9 @@ function rundownload
 	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
 	if ! [[ $store_season =~ $re ]] ; then
-	   echo "error: store_season Not a number : $store_season"
-	   if ! [ -z $FILENAME ]; then continue; else exit; fi
+	   echo "error: store_season Not a number -> $store_season"
+	   store_season=$last_season
+#	   if ! [ -z $FILENAME ]; then continue; else exit; fi
 	fi
 	if ! [[ $last_episode =~ $re ]] ; then
 	   echo "error: last_episode Not a number"
@@ -345,7 +376,7 @@ function rundownload
 				done
 			else
 				printm "Last Aired Episode" "$last_episode < Store ($store_episode)"
-				echo "error: Lower Than Episode in Store"
+				echo "error: Lower Than Episode in Store - 1 (last)"
 			fi
 		fi
 	fi
@@ -366,8 +397,44 @@ function rundownload
 	
 	if (( "$last_season" < "$store_season" )); then
 		printm "Season of Last Aired Episode" "$last_season < Store ($store_season)"
-		echo "error: Lower Than Season in Store"
+		echo "error: Lower Than Season in Store - 2 (last)"
 	fi
+	
+	if ! [[ $next_season =~ $re ]] ; then
+	   # echo "error: next_season Not a number"
+	   if ! [ -z $FILENAME ]; then continue; else exit; fi
+	fi
+	if ! [[ $next_episode =~ $re ]] ; then
+	   # echo "error: next_episode Not a number"
+	   if ! [ -z $FILENAME ]; then continue; else exit; fi
+	fi
+
+	if (( $next_diff > 0 )) && ! (( $next_date == 0 )); then
+		if (( "$next_season" == "$store_season" )); then
+			printm "Season of Next Episode to Air" "$next_season = Store ($store_season)"
+			if (( "$next_episode" == "$store_episode" )); then
+				printm "Next Episode to Air" "$next_episode = Store ($store_episode)"
+			else
+				if (( "$next_episode" > "$store_episode" )); then
+					printm "Next Episode to Air" "$next_episode > Store ($store_episode)"
+					echo "Newer Than Last Episode in Store, Download... AND should be out now!?"
+				
+					for (( download_episode = $store_episode+1; download_episode <= $next_episode; download_episode++ )); do
+						case $download_flag in
+							1) nl; ./kafind.sh -t "$my_clean_string" -s $next_season -e $download_episode -h -d; nl;;
+							2) nl; ./kafind.sh -t "$my_clean_string" -s $next_season -e $download_episode -h -d -r SD; nl;;
+							3) nl; ./kafind.sh -t "$my_clean_string" -s $next_season -e $download_episode -h -d -r HD; nl;;
+						esac
+					done
+				else
+					printm "Next Episode to Air" "$next_episode < Store ($store_episode)"
+					echo "error: Lower Than Episode in Store - 3 (next)"
+				fi
+			fi
+		fi
+	fi
+	
+	
 }
 
 function date_split {
@@ -378,7 +445,7 @@ function date_split {
 	elif ! [ -z "$last" ]; then
 		last_date=$(date -j -f "%d/%m %Y %H:%M.%S" "$last $update_time_of_day" "+%s")
 	else
-		last_date=
+		last_date=0
 	fi
 
 	if [[ $next =~ ^Tonight.*$ ]]; then
@@ -386,14 +453,14 @@ function date_split {
 	elif ! [ -z "$next" ]; then
 		next_date=$(date -j -f "%d/%m %Y %H:%M.%S" "$next $update_time_of_day" "+%s")
 	else
-		next_date=
+		next_date=0
 	fi
 	
-	# echo "update_date='$update_date'"
-	# echo "last_date='$last_date'"
-	# echo "next_date='$next_date'"
-	# echo "now_date='$now_date'"
-	
+	## If show has status "ended", then set the time stamp for next_date and next_update to 95617591200 (1 Jan. 5000)
+	if [[ $state =~ ^Ended.*$ ]]; then
+		next_date=95617591200
+		next_update=95617591200
+	fi
 }
 
 function write_index_file {
@@ -423,6 +490,7 @@ function write_index_file {
 
 		echo "## Update Stamp ##"
 		echo "update_date='$update_date'"
+		echo "next_update='$next_update'"
 	} > "$script_path/$indexfiles/$show_name.cfg"
 }
 
@@ -465,6 +533,7 @@ download_flag=0
 new_flag=false
 upcomming_flag=false
 force_update=false
+auto_run=false
 SERACH=
 FILENAME=
 
@@ -474,8 +543,8 @@ do
 		h) usage; exit 2;;
 		d) download_quality=$OPTARG; download_flag=1;;
 		s) SERACH=$OPTARG;;
-		l) FILENAME=$OPTARG;;
-		n) new_flag=true;;
+		l) FILENAME=$OPTARG; auto_run=true;;
+		n) new_flag=true; auto_run=true;;
 		u) upcomming_flag=true;;
 		f) force_update=true;;
 		\?) usage; exit 3;;

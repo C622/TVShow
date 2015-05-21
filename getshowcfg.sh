@@ -34,23 +34,24 @@ printm_WIDTH=30
 
 TEMPFILE=$(mktemp -t getshowcfg)
 TEMPFILE_INFO=$(mktemp -t getshowinf)
+TEMPFILE_episode=$(mktemp -t getshowepisode)
 
 ## Function 'usage', displays usage information
-function usage
-{
+function usage {
 cat << EOF
 usage: $script_path/$script_file options
 
 This script is used to find and index TV show information. An example could be to search for, $script_file -s "CSI" - This search will use the default option for output, and give you information from the Configuration file, information about last episode in store, and information on where it is stored. Equivalent of using option –c –e -f.
 
 OPTIONS:
-   -a    # List information for all shows
+   -a      Auto option - Used for running script with no color print output etc. 
    -c    * Show "Configuration" information only 
    -e    * Show "last Episode" information only
    -f    * Show "Store path" information only
    -h      Show this message
    -i    # Update "Index" files (old style)
    -l    # Update "show quality index List" files
+   -r    # Run list of information for all shows
    -s      Provide "Search" string - Options marked with *, are depended on this option
    -t    * Get Show information from TV.com
    -n      No update - Will get cached information
@@ -61,8 +62,7 @@ Options marked with # can only be called alone.
 EOF
 }
 
-function cleanup_files
-{
+function cleanup_files {
 	if [ -f $TEMPFILE ]; then
 		rm $TEMPFILE
 	fi
@@ -70,12 +70,15 @@ function cleanup_files
 	if [ -f $TEMPFILE_INFO ]; then
 		rm $TEMPFILE_INFO
 	fi
+
+	if [ -f $TEMPFILE_episode ]; then
+		rm $TEMPFILE_episode
+	fi
 }
 trap cleanup_files EXIT
 
 ## Function 'search', main function for search
-function search
-{
+function search {
 	SEARCH=$1
 	
 	if [ -f $TEMPFILE ]; then
@@ -115,25 +118,21 @@ function search
 
 	. $TEMPFILE
 	
-	if $getTVcom_func; then
-		getTVcom
+	if ! [ -f $indexfiles/"$show_name.cfg" ]; then
+		silent_update
 	fi
-	
 }
 
-function show_search
-{
+function show_search {
 	if [ -f $TEMPFILE ]; then
 		cat $TEMPFILE
 	fi
 }
 
-function combi
-{
-	if $no_update_func; then
-		if [ -f $indexfiles/"$show_name.cfg" ]; then
-			cat $indexfiles/"$show_name.cfg"
-		fi
+function combi {
+	## We need to write the file when not excisting!!!
+	if $no_update_func && [ -f $indexfiles/"$show_name.cfg" ]; then
+		cat $indexfiles/"$show_name.cfg"
 	else
 		if $show_search_func; then
 			show_search
@@ -146,23 +145,40 @@ function combi
 		if $store_lastepisode_func; then
 			store_lastepisode
 		fi
+		
+		if $getTVcom_func; then
+			if (( $comp_func > 1 )); then
+				nl
+				echo "## TV.COM information ##"
+			fi
+			
+			getTVcom
+			
+			if (( $comp_func == 1000 )); then
+				update_date=`/bin/date "+%s"`
+			
+				nl
+				echo "## Update Stamp ##"
+				echo "update_date='$update_date'"
+				echo "next_update='$next_update'"
+			fi
+		fi
 	fi
 }
 
-function getall_file 
-{
-	echo "*** $1 ***"
-	nl
+function getall_file {
+	printl
+	echo "Shows in $indexfiles/$1 Listing..."
+	printl
 	while read line; do
 		search "$line"
 		combi
-		echo
+		nl
 		((total++))
 	done < $indexfiles/$1
 }
 
-function updateall_file 
-{
+function updateall_file  {
 	printl
 	echo "Shows in $indexfiles/$1 Updating..."
 	printl
@@ -172,35 +188,74 @@ function updateall_file
 		fi
 		
 		search "$line"
-		printm "$show_name" "$show_name.cfg"
 
-		update_day=`/bin/date -j "+%d"`
-		update_month=`/bin/date -j "+%-m"`
-		update_year=`/bin/date -j "+%Y"`
-		update_hours=`/bin/date -j "+%H"`
-		update_minutes=`/bin/date -j "+%M"`
-
-		{
-			combi
-			echo
-			echo "## TV.COM information ##"
-			getTVcom
-			echo
-			echo "## Update Stamp ##"
-			echo "update_day='$update_day'"
-			echo "update_month='$update_month'"
-			echo "update_year='$update_year'"
-			echo "update_hours='$update_hours'"
-			echo "update_minutes='$update_minutes'"
-		} > $TEMPFILE_INFO
-		cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+		if ! $no_update_func; then
+			printm "$show_name" "$show_name.cfg"
+			{
+				combi
+			} > $TEMPFILE_INFO
+			cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+		else
+			NEED_UPDATE=false
+			printf '%-.38s' "$show_name.cfg ......................................"
+			if [ -f $indexfiles/"$show_name.cfg" ]; then
+				. $indexfiles/"$show_name.cfg"
+				if ! [[ "$show_quality" == "NO" ]]; then
+					if [[ "$store_path" == "error" ]]; then
+						NEED_UPDATE=true
+						if ! $auto_run; then printf "\033[0;31m"; fi
+						printf " [ error : Path ]"
+						if ! $auto_run; then printf "\033[00m"; fi
+						printf "\n"
+#						store_show
+					elif  [[ "$store_season" == "S-NON" ]]; then
+						NEED_UPDATE=true
+						if ! $auto_run; then printf "\033[0;31m"; fi
+						printf " [ error : Season ]"
+						if ! $auto_run; then printf "\033[00m"; fi
+						printf "\n"
+#						store_lastepisode
+					elif  [[ "$store_episode" == "E-NON" ]]; then
+						NEED_UPDATE=true
+						if ! $auto_run; then printf "\033[0;31m"; fi
+						printf " [ error : Episode ]"
+						if ! $auto_run; then printf "\033[00m"; fi
+						printf "\n"
+#						store_lastepisode
+					else
+						if ! $auto_run; then printf "\033[1;32m"; fi
+						printf " [ OK ]"
+						if ! $auto_run; then printf "\033[00m"; fi
+						printf "\n"
+					fi
+				else
+					if ! $auto_run; then printf "\033[1;34m"; fi
+					printf " [ Skip ]"
+					if ! $auto_run; then printf "\033[00m"; fi
+					printf "\n"
+				fi
+			else
+				NEED_UPDATE=true
+				if ! $auto_run; then printf "\033[0;31m"; fi
+				printf " [ Missing ]"
+				if ! $auto_run; then printf "\033[00m"; fi
+				printf "\n"
+			fi
+			if $NEED_UPDATE; then
+				no_update_func=false
+				{
+					combi
+				} > $TEMPFILE_INFO
+				cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+				no_update_func=true
+			fi
+		fi
 		((total++))
 	done < $indexfiles/$1
 	nl
 }
 
-function getall
-{
+function getall {
 	totalSD=0
 	totalHD=0
 	totalNO=0
@@ -219,8 +274,7 @@ function getall
 	printm "Total" "$total" 12
 }
 
-function updateall
-{
+function updateall {
 	totalSD=0
 	totalHD=0
 	totalNO=0
@@ -233,24 +287,56 @@ function updateall
 	updateall_file showlistNO.cfg
 	((totalNO=total-totalSD-totalHD))
 	
-	printm "SD shows" "$totalSD"
-	printm "HD shows" "$totalHD"
-	printm "NO shows" "$totalNO"
-	printm "Total" "$total"
+	printm "SD shows" "$totalSD" 12
+	printm "HD shows" "$totalHD" 12
+	printm "NO shows" "$totalNO" 12
+	printm "Total" "$total" 12
 	
 	stat -f "%Sm" $installpath/$showlist > TVshows_file.ini
 }
 
-function gen_index
-{
+function silent_update {
+	update_date=`/bin/date "+%s"`
+	silent_update_func=true
+	{
+		show_search
+		store_show
+		store_lastepisode
+		nl
+		echo "## TV.COM information ##"
+		getTVcom
+		nl
+		echo "## Update Stamp ##"
+		echo "update_date='$update_date'"
+		echo "next_update='$next_update'"
+	} > $TEMPFILE_INFO
+	
+	cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+	update_date=
+}
+
+function update_single {
+	if [ -f $TEMPFILE_INFO ]; then
+		rm $TEMPFILE_INFO
+	fi
+
+	search "$SEARCH"
+	printm "Updating" "$show_name.cfg"
+
+	{
+		combi
+	} > $TEMPFILE_INFO
+	cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+}
+
+function gen_index {
 	showindex $indexfiles/showlistSD.cfg
 	showindex $indexfiles/showlistHD.cfg
 	showindex $indexfiles/showlistNO.cfg
 }
 
 ## showindex.sh
-function showindex
-{
+function showindex {
 	nl
 	printl
 	echo "Shows $1 files Updating..."
@@ -267,8 +353,7 @@ function showindex
 }
 
 ## showupdate.sh
-function gen_show_list
-{
+function gen_show_list {
 	nl
 	printl
 	echo "showlist config-files Updating..."
@@ -320,8 +405,7 @@ function gen_show_list
 }
 
 ## findshow.sh
-function store_show
-{
+function store_show {
 	show_path_tmp=
 	show_path=
 	
@@ -338,19 +422,26 @@ function store_show
 	else
 		echo "store_path='$show_path'"
 	fi
+	
+	if ( $updateall_func && ! [ -f $indexfiles/"$show_name.cfg" ] ) || $silent_update_func; then
+		cp $TEMPFILE_INFO $indexfiles/"$show_name.cfg"
+	fi
 }
 
 ## lastepisode.sh
-function store_lastepisode
-{
+function store_lastepisode {
 	seasonnum=
 	seasonpath=
 	episodenum=
 	
 	if [ -f "$installpath/$indexfiles/$show_name.cfg" ]; then
-		. $installpath/$indexfiles/"$show_name".cfg
+		cat $installpath/$indexfiles/"$show_name".cfg | head -n 5 > $TEMPFILE_episode
+		. $TEMPFILE_episode
+		if [ -f $TEMPFILE_episode ]; then
+			rm $TEMPFILE_episode
+		fi
 	else
-		echo "CFG File not here!"
+#		echo "CFG File not here!"
 		return 1
 	fi
 
@@ -386,35 +477,35 @@ function store_lastepisode
 	fi
 }
 
-function getTVcom
-{
+function getTVcom {
 	$installpath/showgetinfo.pl $show_url
 }
 
-function call_function
-{
+function call_function {
 	## ==================
 	##  VALIDATE SEGMENT
 	## ==================
 
-	comp_func=false
+	comp_func=0
 	alone_func=0
 	full_alone_func=0
 	
-	## list of combi options/functions ... If one or more are used $comp_func is set to true
-	if $store_show_func || $store_lastepisode_func || $show_search_func; then
-		comp_func=true
-	fi
+	## list of combi options/functions ... If one or more are used $comp_func is incremented
+	for h in $store_show_func $store_lastepisode_func $show_search_func $getTVcom_func; do
+		if $h; then
+			comp_func=$(($comp_func + 1))
+		fi
+	done
 	
-	## list of alone options/functions
+	## list of alone options/functions ... If one or more are used $alone_func is incremented
 	for i in $getall_func $need_search; do
 		if $i; then
 			alone_func=$((alone_func + 1))
 		fi
 	done
 
-	## list of full-alone options/functions
-	for j in $gen_show_list_func $gen_index_func $updateall_func; do
+	## list of full-alone options/functions ... If one or more are used $full_alone_func is incremented
+	for j in $gen_show_list_func $gen_index_func; do
 		if $j; then
 			full_alone_func=$((full_alone_func + 1))
 		fi
@@ -434,26 +525,24 @@ function call_function
 		exit 11
 
 	## If a "full-alone" options/functions are used together with any other option, error
-	elif (( $full_alone_func == 1 )) && ( $comp_func || (( $alone_func > 0 )) ); then
+	elif (( $full_alone_func == 1 )) && ( (( $comp_func > 0 )) || (( $alone_func > 0 )) ); then
 		echo "Error 12: Alone option called with other option!"
 		usage
 		exit 12
 
 	## If a combi options/functions called without the search option, error
-	elif $comp_func && ! ( $need_search || $getall_func ); then
+	elif (( $comp_func > 0 )) && ! ( $need_search || $getall_func ); then
 		echo "Error 13: Option depended on s option, called without s option!"
 		usage
 		exit 13
 	fi
 	
-	if (( $full_alone_func == 0 )) && (( $alone_func == 0 )); then
+	if (( $full_alone_func == 0 )) && (( $alone_func == 0 )) && ! $updateall_func; then
 		echo "Error 14: No option selected that will give output!"
 		usage
 		exit 14
 	fi
-		
 	
-
 	## ========================
 	##  CALL FUNCTIONS SEGMENT
 	## ========================
@@ -465,14 +554,18 @@ function call_function
 	if $need_search; then
 		search "$SEARCH"
 	fi
-	
-	if ! $comp_func; then
+
+	if (( $comp_func == 0 )); then
 		show_search_func=true
 		store_show_func=true
 		store_lastepisode_func=true
+		getTVcom_func=true
+		## To indicate that $comp_func was '0', and show_search_func, store_show_func, store_lastepisode_func and getTVcom_func
+		## has been changed to 'true'. $comp_func is set to 1000. 
+		comp_func=1000
 	fi
 
-	if $updateall_func; then
+	if $updateall_func && ! $need_search; then
 		updateall
 	fi
 
@@ -487,12 +580,17 @@ function call_function
 	if $getall_func; then
 		getall
 	fi
-	
-	if $need_search && ! $getTVcom_func; then
-		combi
+
+	if $need_search; then
+		if $updateall_func; then
+			update_single
+		else
+			combi
+		fi
 	fi
 }
 
+## Default values for flags
 need_search=false
 store_show_func=false
 store_lastepisode_func=false
@@ -503,10 +601,13 @@ gen_index_func=false
 updateall_func=false
 no_update_func=false
 getTVcom_func=false
+auto_run=false
+silent_update_func=false
 
-while getopts “hailefcunts:” opt_val
+while getopts “acefhilnrs:tux” opt_val
 do
 	case $opt_val in
+		a) auto_run=true;;
 		h) usage; exit 0;;
 		s) SEARCH=$OPTARG; need_search=true;;
 		i) gen_index_func=true;;
@@ -514,10 +615,11 @@ do
 		f) store_show_func=true;;
 		e) store_lastepisode_func=true;;
 		c) show_search_func=true;;
-		a) getall_func=true;;
+		r) getall_func=true;;
 		u) updateall_func=true;;
 		n) no_update_func=true;;
 		t) getTVcom_func=true;;
+		x) silent_update_func=true;;
 		*) usage; exit 2;;
 	esac
 done

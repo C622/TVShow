@@ -1,0 +1,20 @@
+- BUG/FIX or CHANGE that has not been done yet
++ BUG/FIX or CHANGE that has been implemnted
+
+
+
+showinfo.sh
+-----------
+* BUG/FIX *
++ Option -u: Yesterday only shows shows where "Previous Episode Aried" is "Yesterday", not date of yesterday.
+
+* CHANGE *
+
+
+episodemissing.sh
+-----------------
+* BUG/FIX *
++ Error: "(standard_in) 1: parse error" output. (Eks. emissing -s helix -> showinfo -n -s helix -> gives wrrong output)
+
+* CHANGE *
+

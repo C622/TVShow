@@ -17,3 +17,32 @@ https://eztv.ch/shows/9/american-idol/
 
 Date format:
 date "+%d/%-m %Y"
+
+
+grep --include=*.{sh,cfg} -rnw . -e "TVShows.cfg"
+
+grep --include=*.{sh,cfg} -rnw . -e "\$showlist"
+
+curl -s http://www.tv.com/shows/csi-crime-scene-investigation/ | sed -e '/<div class="previous_episode">/,/<\/div>/!d'
+
+curl -s http://www.tv.com/m/shows/sons-of-anarchy/episodes/ | grep "section_header" | sed "s/.*Season \(.*\) <.*/\1/"
+
+
+
+Current date in sec:
+--------------------
+date '+%s'
+
+Given sec -> date:
+------------------
+date -r 1426340117
+
+date -jr 1426350483 "+%d/%-m %Y %H:%M.%S"
+
+Given date -> sec:
+------------------
+date -j -f "%d/%m %Y" "12/3 2015" "+%s"
+
+date -j -f "%d/%m %Y %H:%M.%S" "19/3 2015 03:00.00" "+%s"
+
+

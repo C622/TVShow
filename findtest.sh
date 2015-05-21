@@ -124,7 +124,7 @@ function update_list {
 	
 	while read line; do
 		line2=$(sed -e 's/.cfg//' <<< "$line")
-		./getshowcfg.sh -t -s "$line2" > $TEMPFILE_INFO
+		./getshowcfg.sh -t -n -s "$line2" > $TEMPFILE_INFO
 		. $TEMPFILE_INFO
 		printm "$line" "$show"
 		LINE_TEXT[$MATRIX_SIZE]="$line"

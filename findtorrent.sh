@@ -75,7 +75,7 @@ function top_list {
 	## Short list view test
 	line_number=0
 
-	printf "    #   UPLOADED      TITEL\n" >> $TEMPFILE_INFO
+	printf "   #   TITEL\n" >> $TEMPFILE_INFO
 
 	while read line_titel
 	do
@@ -89,11 +89,14 @@ function top_list {
 
 		line_titel=$(sed 's/titel = "\(.*\)"/\1/' <<< $line_titel)
 		line_uploaded=$(sed 's/uploaded = "\(.*\)"/\1/' <<< $line_uploaded)
+		line_print_size=$(sed 's/size = "\(.*\)"/\1/' <<< $line_size)
 		
-		printf "%5s" "$line_number" >> $TEMPFILE_INFO
-		printf "%-17s" "   $line_uploaded" >> $TEMPFILE_INFO
-		printf "$line_titel\n" >> $TEMPFILE_INFO
-		
+		{
+			printf "%4s" "$line_number"
+			printf "%-3s" ""
+			printf "$line_titel\n"
+			printf "%6s uploaded: %s // leeds: %s // seeds: %s // size: %s\n" " " "$line_uploaded" "$line_leeds" "$line_seeds" "$line_print_size"
+		} >> $TEMPFILE_INFO
 		
 	done < $TEMPFILE
 	cat $TEMPFILE_INFO		
@@ -106,7 +109,12 @@ function short_list {
 
 function download {
 	## Download the given number
-	btc add -u "$(cat $TEMPFILE | grep "^magnet" | tail -n 1)"
+	if [ -s $TEMPFILE ]; then
+		#btc add -u "$(cat $TEMPFILE | grep "^magnet" | tail -n 1)"
+		cat $TEMPFILE | grep "^magnet" | tail -n 1
+	else
+		echo "Error 3: No search result to start download"; exit 3
+	fi
 }
 
 function default {
@@ -165,7 +173,9 @@ if $download_func; then
 	if (( $hits == 0 )); then
 		hits=1
 	fi
-	go
+	if ! $short_list_func; then
+		go
+	fi
 	download
 fi
 
